@@ -111,7 +111,6 @@ function handleError(error, context = "") {
 
   // Render initial UI
   renderTodos();
-  initCurrentMonth();
   renderBudget();
   renderHabits();
   renderCalendar();
@@ -462,6 +461,17 @@ addExtraBtn.onclick = async () => {
 
 function renderBudget() {
   updateMonthDisplay();
+  
+  // Initialize if doesn't exist
+  if (!budgetData[currentMonth]) {
+    budgetData[currentMonth] = {
+      income: 0,
+      expenses: [],
+      savings: 0,
+      extra: []
+    };
+  }
+  
   const monthData = budgetData[currentMonth];
 
   incomeInput.value = monthData.income || 0;
