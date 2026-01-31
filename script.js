@@ -111,6 +111,7 @@ function handleError(error, context = "") {
 
   // Render initial UI
   renderTodos();
+  initCurrentMonth();
   renderBudget();
   renderHabits();
   renderCalendar();
@@ -155,8 +156,6 @@ function renderTodos() {
   if (!todos[weekKey]) {
     todos[weekKey] = Array(7).fill().map(() => []);
   }
-
-  todoDaysEl.innerHTML = "";
 
   todos[weekKey].forEach((dayTodos, dayIndex) => {
     const dayEl = document.createElement("div");
@@ -265,8 +264,7 @@ document.getElementById("addTodo").onclick = async () => {
       text: text,
       note: note,
       done: false
-    }])
-    .select();
+    }], { count: 'estimated' });
 
   if (!error && data && data[0]) {
     // Add to local state with ID
@@ -348,13 +346,16 @@ function getMonthKey(date = new Date()) {
 
 let currentMonth = getMonthKey();
 
-if (!budgetData[currentMonth]) {
-  budgetData[currentMonth] = {
-    income: 0,
-    expenses: [],
-    savings: 0,
-    extra: []
-  };
+// Initialize current month if not exists
+function initCurrentMonth() {
+  if (!budgetData[currentMonth]) {
+    budgetData[currentMonth] = {
+      income: 0,
+      expenses: [],
+      savings: 0,
+      extra: []
+    };
+  }
 }
 
 function updateMonthDisplay() {
@@ -643,8 +644,7 @@ document.getElementById("addHabit").onclick = async () => {
       week_key: weekKey,
       name: name,
       days: Array(7).fill(false)
-    }])
-    .select();
+    }], { count: 'estimated' });
 
   if (!error && data && data[0]) {
     habits[weekKey].push({
