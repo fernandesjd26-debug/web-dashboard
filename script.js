@@ -726,13 +726,15 @@ function saveDiary() {
     .from('diary_entries')
     .insert([newEntry])
     .then(({ data, error }) => {
-      if (!error && data && data[0]) {
-        newEntry.id = data[0].id;
+      if (error) {
+        console.error("❌ Failed to save diary:", error);
+      } else {
+        console.log("✅ Diary entry saved!");
         diaryEntries.unshift(newEntry);
+        diaryDate.value = '';
         diaryText.value = '';
         renderDiary(diaryEntries);
       }
-      handleError(error, "saving diary entry");
     });
 }
 
@@ -892,19 +894,21 @@ document.getElementById('addEvent').addEventListener('click', () => {
       note: note
     }])
     .then(({ data, error }) => {
-      if (!error && data && data[0]) {
-        newEvent.id = data[0].id;
+      if (error) {
+        console.error("❌ Failed to save event:", error);
+      } else {
+        console.log("✅ Calendar event saved!");
         
         if (!calendarEvents[date]) calendarEvents[date] = [];
         calendarEvents[date].push(newEvent);
 
+        document.getElementById('eventDate').value = '';
         document.getElementById('eventTitle').value = '';
         document.getElementById('eventNote').value = '';
 
         renderCalendar();
         showDayEvents(date);
       }
-      handleError(error, "adding calendar event");
     });
 });
 
