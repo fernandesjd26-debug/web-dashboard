@@ -263,12 +263,15 @@ document.getElementById("addTodo").onclick = async () => {
       text: text,
       note: note,
       done: false
-    }], { count: 'estimated' });
+    }]);
 
-  if (!error && data && data[0]) {
-    // Add to local state with ID
+  if (error) {
+    console.error("❌ Failed to save todo:", error);
+    alert("Failed to save task: " + error.message);
+  } else {
+    console.log("✅ Todo saved to Supabase!");
+    // Add to local state
     todos[weekKey][day].push({
-      id: data[0].id,
       text,
       note,
       done: false
@@ -276,10 +279,6 @@ document.getElementById("addTodo").onclick = async () => {
     todoText.value = "";
     todoNote.value = "";
     renderTodos();
-    console.log("✅ Todo saved to Supabase!");
-  } else {
-    console.error("❌ Failed to save todo:", error);
-    alert("Failed to save task. Check console.");
   }
 };
 
@@ -654,19 +653,18 @@ document.getElementById("addHabit").onclick = async () => {
       week_key: weekKey,
       name: name,
       days: Array(7).fill(false)
-    }], { count: 'estimated' });
+    }]);
 
-  if (!error && data && data[0]) {
+  if (error) {
+    console.error("❌ Failed to save habit:", error);
+  } else {
+    console.log("✅ Habit saved to Supabase!");
     habits[weekKey].push({
-      id: data[0].id,
       name,
       days: Array(7).fill(false)
     });
     habitName.value = "";
     renderHabits();
-    console.log("✅ Habit saved to Supabase!");
-  } else {
-    console.error("❌ Failed to save habit:", error);
   }
 };
 
