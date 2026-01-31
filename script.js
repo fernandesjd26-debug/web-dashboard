@@ -156,6 +156,9 @@ function renderTodos() {
     todos[weekKey] = Array(7).fill().map(() => []);
   }
 
+  // CLEAR previous content
+  todoDaysEl.innerHTML = "";
+
   todos[weekKey].forEach((dayTodos, dayIndex) => {
     const dayEl = document.createElement("div");
     dayEl.className = "todo-day";
