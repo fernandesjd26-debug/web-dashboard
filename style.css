@@ -224,17 +224,29 @@ nav button:hover {
 
 .budget-input, .budget-savings, .budget-expenses, .budget-extra {
   margin-bottom: 16px;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.budget-input input, .budget-savings input, .expense-input input, .extra-input input {
+.todo-input {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.budget-input input, .budget-savings input, .expense-input input, .extra-input input, .todo-input input, .todo-input select {
   padding: 6px;
   border-radius: 6px;
   border: 1px solid var(--border);
-  margin-right: 6px;
   width: 120px;
 }
 
-.expense-input button, .extra-input button {
+.expense-input button, .extra-input button, .todo-input button {
   padding: 6px 10px;
   border-radius: 6px;
   border: none;
