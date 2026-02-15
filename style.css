@@ -24,6 +24,8 @@ header {
 
 nav {
   display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 8px;
   background: #ececec;
@@ -332,28 +334,29 @@ ul {
 }
 
 ul li {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
   align-items: center;
   padding: 6px 0;
   border-bottom: 1px solid var(--border);
   gap: 8px;
 }
 
-ul li input[type="checkbox"] {
-  order: 3;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
 ul li span {
-  order: 1;
-  flex: 1;
+  grid-column: 2;
+  text-align: left;
 }
 
 ul li button {
-  order: 2;
-  flex-shrink: 0;
+  grid-column: 3;
   padding: 2px 6px;
+  flex-shrink: 0;
+}
+
+ul li input[type="checkbox"] {
+  grid-column: 4;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 ul li:last-child {
