@@ -1,4 +1,76 @@
 // ==========================================
+// MOTIVATIONAL PHRASES
+// ==========================================
+
+const motivationalPhrases = [
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+  { text: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
+  { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+  { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+  { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
+  { text: "It always seems impossible until it's done.", author: "Nelson Mandela" },
+  { text: "Do something today that your future self will thank you for.", author: "Sean Patrick Flanery" },
+  { text: "Great things never come from comfort zones.", author: "Unknown" },
+  { text: "Success is walking from failure to failure with no loss of enthusiasm.", author: "Winston Churchill" },
+  { text: "The only impossible journey is the one you never begin.", author: "Tony Robbins" },
+  { text: "Your limitation—it's only your imagination. Push beyond limits.", author: "Unknown" },
+  { text: "Dream bigger. Do bigger.", author: "Unknown" },
+  { text: "Don't stop until you're proud.", author: "Unknown" },
+  { text: "You are capable of amazing things.", author: "Unknown" },
+  { text: "Wake up with determination. Go to bed with satisfaction.", author: "Unknown" },
+  { text: "The journey of a thousand miles begins with a single step.", author: "Lao Tzu" },
+  { text: "Excellence is not a destination; it is a continuous journey that never ends.", author: "Brian Tracy" },
+  { text: "You don't have to see the whole staircase, just take the first step.", author: "Martin Luther King Jr." },
+  { text: "Perfection is not just about control, it's also about letting go.", author: "Freida McFadden" },
+  { text: "Expect nothing, be happy about everything.", author: "Unknown" }
+];
+
+let currentPhraseIndex = 0;
+
+function displayRandomPhrase() {
+  const randomIndex = Math.floor(Math.random() * motivationalPhrases.length);
+  currentPhraseIndex = randomIndex;
+  const phrase = motivationalPhrases[randomIndex];
+  
+  const phraseElement = document.getElementById('motivational-phrase');
+  const authorElement = document.getElementById('motivation-author');
+  
+  // Fade out effect
+  phraseElement.style.opacity = '0';
+  authorElement.style.opacity = '0';
+  
+  setTimeout(() => {
+    phraseElement.textContent = phrase.text;
+    authorElement.textContent = `— ${phrase.author}`;
+    
+    // Fade in effect
+    phraseElement.style.opacity = '1';
+    authorElement.style.opacity = '1';
+  }, 200);
+}
+
+// Initialize immediately and also on DOMContentLoaded as fallback
+function initMotivation() {
+  console.log("🎯 Initializing motivation section...");
+  displayRandomPhrase();
+  
+  const newPhraseBtn = document.getElementById('new-phrase-btn');
+  if (newPhraseBtn) {
+    console.log("✅ Button found, attaching click listener");
+    newPhraseBtn.addEventListener('click', displayRandomPhrase);
+  } else {
+    console.warn("⚠️ Button not found in DOM");
+  }
+}
+
+// Try to initialize immediately
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initMotivation);
+} else {
+  initMotivation();
+}
+
+// ==========================================
 // SUPABASE SETUP & INITIALIZATION
 // ==========================================
 
@@ -45,12 +117,16 @@ function handleError(error, context = "") {
   if (!budgetError && budgetDataList) {
     budgetData = {};
     budgetDataList.forEach(item => {
+      // ensure expenses/extra have a `paid` boolean
+      const expenses = (item.expenses || []).map(e => ({ name: e.name, amount: e.amount, paid: e.paid || false }));
+      const extra = (item.extra || []).map(e => ({ name: e.name, amount: e.amount, paid: e.paid || false }));
+
       budgetData[item.month_key] = {
         id: item.id,
         income: item.income,
-        expenses: item.expenses || [],
+        expenses: expenses,
         savings: item.savings,
-        extra: item.extra || []
+        extra: extra
       };
     });
     console.log("Budget loaded:", budgetData);
@@ -126,8 +202,8 @@ function showSection(sectionId) {
   document.getElementById(sectionId).classList.add("active");
 }
 
-// show To-Do by default
-showSection("todo-section");
+// show Motivation by default
+showSection("motivation-section");
 
 const todoDaysEl = document.getElementById("todoDays");
 const weekLabel = document.getElementById("weekLabel");
@@ -438,7 +514,7 @@ addExpenseBtn.onclick = async () => {
   const amount = Number(expenseAmountInput.value);
   if (!name || !amount) return;
 
-  budgetData[currentMonth].expenses.push({ name, amount });
+  budgetData[currentMonth].expenses.push({ name, amount, paid: false });
   expenseNameInput.value = "";
   expenseAmountInput.value = "";
   
@@ -452,7 +528,7 @@ addExtraBtn.onclick = async () => {
   const amount = Number(extraAmountInput.value);
   if (!name || !amount) return;
 
-  budgetData[currentMonth].extra.push({ name, amount });
+  budgetData[currentMonth].extra.push({ name, amount, paid: false });
   extraNameInput.value = "";
   extraAmountInput.value = "";
   
@@ -484,9 +560,39 @@ function renderBudget() {
   let totalExpenses = 0;
   monthData.expenses.forEach((e, i) => {
     const li = document.createElement("li");
-    li.textContent = `${e.name}: ${e.amount}`;
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = !!e.paid;
+    checkbox.dataset.index = i;
+
+    const label = document.createElement('span');
+    label.textContent = ` ${e.name}: ${e.amount}`;
+    if (e.paid) label.style.textDecoration = 'line-through';
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '×';
+    delBtn.dataset.index = i;
+    delBtn.className = 'small-delete';
+
+    checkbox.onchange = async () => {
+      e.paid = checkbox.checked;
+      await saveBudget();
+      renderBudget();
+    };
+
+    delBtn.onclick = async () => {
+      monthData.expenses.splice(i, 1);
+      await saveBudget();
+      renderBudget();
+    };
+
+    li.appendChild(checkbox);
+    li.appendChild(label);
+    li.appendChild(delBtn);
     expenseList.appendChild(li);
-    totalExpenses += e.amount;
+
+    if (e.paid) totalExpenses += Number(e.amount) || 0;
   });
 
   // Left after expenses
@@ -500,11 +606,41 @@ function renderBudget() {
   // Extra
   extraList.innerHTML = "";
   let totalExtra = 0;
-  monthData.extra.forEach(e => {
-    const li = document.createElement("li");
-    li.textContent = `${e.name}: ${e.amount}`;
+  monthData.extra.forEach((e, i) => {
+    const li = document.createElement('li');
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = !!e.paid;
+    checkbox.dataset.index = i;
+
+    const label = document.createElement('span');
+    label.textContent = ` ${e.name}: ${e.amount}`;
+    if (e.paid) label.style.textDecoration = 'line-through';
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '×';
+    delBtn.dataset.index = i;
+    delBtn.className = 'small-delete';
+
+    checkbox.onchange = async () => {
+      e.paid = checkbox.checked;
+      await saveBudget();
+      renderBudget();
+    };
+
+    delBtn.onclick = async () => {
+      monthData.extra.splice(i, 1);
+      await saveBudget();
+      renderBudget();
+    };
+
+    li.appendChild(checkbox);
+    li.appendChild(label);
+    li.appendChild(delBtn);
     extraList.appendChild(li);
-    totalExtra += e.amount;
+
+    if (e.paid) totalExtra += Number(e.amount) || 0;
   });
 
   // Final left

@@ -23,12 +23,23 @@
 </header>
 
 <nav>
+  <button onclick="showSection('motivation-section')">Motivation</button>
   <button onclick="showSection('todo-section')">Weekly To-Do</button>
   <button onclick="showSection('budget-section')">Monthly Budget</button>
   <button onclick="showSection('habits-section')">Habits</button>
   <button onclick="showSection('diary-section')">Diary</button>
   <button onclick="showSection('calendar-section')">Calendar</button>
 </nav>
+
+<section id="motivation-section" class="page-section active">
+  <div class="motivation-container">
+    <div class="motivation-quote">
+      <p id="motivational-phrase" class="phrase-text">Loading inspiration...</p>
+      <p id="motivation-author" class="phrase-author"></p>
+    </div>
+    <button id="new-phrase-btn" class="btn-new-phrase">Get New Inspiration</button>
+  </div>
+</section>
 
 <section id="todo-section" class="page-section">
   <div class="todo-header">
