@@ -945,6 +945,10 @@ document.getElementById("copyHabitsFromPrevWeek").onclick = async () => {
   const currentWeekKey = getHabitsWeekKey(habitsWeekOffset);
   const prevWeekKey = getHabitsWeekKey(habitsWeekOffset - 1);
   
+  console.log("Current week:", currentWeekKey);
+  console.log("Previous week:", prevWeekKey);
+  console.log("Previous week habits:", habits[prevWeekKey]);
+  
   // Check if previous week has habits
   if (!habits[prevWeekKey] || habits[prevWeekKey].length === 0) {
     alert("No habits found in the previous week to copy!");
@@ -965,13 +969,13 @@ document.getElementById("copyHabitsFromPrevWeek").onclick = async () => {
   
   // Copy habit names from previous week (without the checked state)
   const prevHabits = habits[prevWeekKey];
-  const existingHabitNames = habits[currentWeekKey].map(h => h.habit);
+  const existingHabitNames = habits[currentWeekKey].map(h => h.name);
   
   for (const prevHabit of prevHabits) {
     // Only add if habit doesn't already exist in current week
-    if (!existingHabitNames.includes(prevHabit.habit)) {
+    if (!existingHabitNames.includes(prevHabit.name)) {
       const newHabit = {
-        habit: prevHabit.habit,
+        name: prevHabit.name,
         days: [false, false, false, false, false, false, false]
       };
       habits[currentWeekKey].push(newHabit);
@@ -982,7 +986,7 @@ document.getElementById("copyHabitsFromPrevWeek").onclick = async () => {
           .from("habits")
           .insert({
             week_key: currentWeekKey,
-            habit: newHabit.habit,
+            habit_name: newHabit.name,
             day_index: dayIndex,
             completed: false
           });
