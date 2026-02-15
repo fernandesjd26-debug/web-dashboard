@@ -227,23 +227,34 @@ nav button:hover {
 }
 
 .budget-input {
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.budget-input label {
+  font-weight: 600;
 }
 
 .budget-input input {
   padding: 6px;
   border-radius: 6px;
   border: 1px solid var(--border);
-  margin-left: 8px;
-  width: 120px;
+  width: 150px;
 }
 
-.budget-savings input, .expense-input input, .extra-input input {
+.budget-savings {
+  text-align: center;
+}
+
+.budget-savings input {
   padding: 6px;
   border-radius: 6px;
   border: 1px solid var(--border);
-  margin-right: 6px;
   width: 120px;
+  margin-left: 8px;
 }
 
 .expense-input, .extra-input {
@@ -252,6 +263,13 @@ nav button:hover {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+.expense-input input, .extra-input input {
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  width: 150px;
 }
 
 .expense-input button, .extra-input button {
@@ -321,15 +339,27 @@ ul li:last-child {
 
 .habits-input {
   display: flex;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 8px;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .habits-input input {
-  flex: 1;
-  padding: 0.5rem;
-  border-radius: 8px;
+  padding: 6px;
+  border-radius: 6px;
   border: 1px solid var(--border);
+  min-width: 200px;
+}
+
+.habits-input button {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 #habitsTable {
@@ -369,23 +399,64 @@ ul li:last-child {
 
 #diary-section textarea {
   width: 100%;
+  max-width: 500px;
   padding: 0.8rem;
   border-radius: 10px;
   border: 1px solid var(--border);
   margin-bottom: 0.5rem;
   font-size: 1rem;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.diary-input {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
+.diary-input input {
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
 }
 
 #diary-section button {
   margin-bottom: 1rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.diary-search {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
+.diary-search input {
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
 }
 
 #searchDiary {
-  width: 100%;
-  padding: 0.5rem;
-  margin-bottom: 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .diary-entry {
