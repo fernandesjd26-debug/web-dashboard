@@ -1014,6 +1014,29 @@ let diaryEntries = [];
 document.getElementById('saveDiary').addEventListener('click', saveDiary);
 document.getElementById('searchDiary').addEventListener('click', searchDiary);
 
+// PDF Guide hover functionality
+const guideButton = document.querySelector('.guide-button');
+const pdfPreview = document.querySelector('.pdf-preview');
+
+if (guideButton && pdfPreview) {
+  guideButton.addEventListener('mouseenter', () => {
+    pdfPreview.classList.add('show');
+  });
+
+  guideButton.addEventListener('mouseleave', (e) => {
+    // Check if mouse is moving to the preview
+    setTimeout(() => {
+      if (!pdfPreview.matches(':hover') && !guideButton.matches(':hover')) {
+        pdfPreview.classList.remove('show');
+      }
+    }, 100);
+  });
+
+  pdfPreview.addEventListener('mouseleave', () => {
+    pdfPreview.classList.remove('show');
+  });
+}
+
 function saveDiary() {
   if (!diaryDate.value || !diaryText.value.trim()) return;
 

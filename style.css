@@ -464,15 +464,6 @@ ul li:last-child {
   background: #2563eb;
 }
 
-.guide-button:hover + textarea {
-  margin-right: 420px;
-  transition: margin-right 0.3s ease;
-}
-
-.guide-button:hover ~ .pdf-preview {
-  display: block;
-}
-
 .pdf-preview {
   display: none;
   position: fixed;
@@ -486,6 +477,10 @@ ul li:last-child {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   z-index: 1000;
   overflow: hidden;
+}
+
+.pdf-preview.show {
+  display: block;
 }
 
 .pdf-preview iframe {
