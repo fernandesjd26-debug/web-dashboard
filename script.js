@@ -71,6 +71,113 @@ if (document.readyState === 'loading') {
 }
 
 // ==========================================
+// NOTIFICATION SYSTEM FOR HABITS & DIARY
+// ==========================================
+
+const notificationTimes = {
+  habits: ['06:50', '20:00'],  // 6:50 AM and 8:00 PM
+  diary: ['20:00']              // 8:00 PM
+};
+
+let notificationState = {
+  habitsReminder1Sent: false,
+  habitsReminder2Sent: false,
+  diaryReminderSent: false
+};
+
+// Request notification permission
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().then(permission => {
+      console.log('Notification permission:', permission);
+    });
+  }
+}
+
+// Check if today's entry exists
+function hasTodayEntry(dataObj, entryType) {
+  const today = new Date().toISOString().split('T')[0];
+  
+  if (entryType === 'habits') {
+    const weekKey = getWeekKey(new Date());
+    if (!dataObj[weekKey]) return false;
+    const todayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+    return dataObj[weekKey].length > todayIndex && dataObj[weekKey][todayIndex].length > 0;
+  }
+  
+  if (entryType === 'diary') {
+    return dataObj && dataObj.some(entry => entry.date && entry.date.includes(today));
+  }
+  
+  return false;
+}
+
+// Send notification
+function sendNotification(title, body, type) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, {
+      body: body,
+      icon: '🎯',
+      badge: '🎯',
+      tag: type,
+      requireInteraction: true
+    });
+    console.log(`✅ Notification sent: ${title}`);
+  }
+}
+
+// Check and send reminders based on current time
+function checkAndSendReminders() {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const currentTime = `${hours}:${minutes}`;
+  
+  // Reset reminders at midnight
+  if (currentTime === '00:01') {
+    notificationState.habitsReminder1Sent = false;
+    notificationState.habitsReminder2Sent = false;
+    notificationState.diaryReminderSent = false;
+  }
+  
+  // Check habits at 6:50 AM
+  if (currentTime === '06:50' && !notificationState.habitsReminder1Sent) {
+    const hasHabits = hasTodayEntry(habits, 'habits');
+    if (!hasHabits) {
+      sendNotification('🌅 Good Morning!', 'Don\'t forget to fill your habits for today!', 'habits-1');
+      notificationState.habitsReminder1Sent = true;
+    }
+  }
+  
+  // Check diary at 8:00 PM
+  if (currentTime === '20:00' && !notificationState.diaryReminderSent) {
+    const hasDiary = hasTodayEntry(diary, 'diary');
+    if (!hasDiary) {
+      sendNotification('📔 Evening Reminder', 'Time to reflect! Have you written in your diary today?', 'diary');
+      notificationState.diaryReminderSent = true;
+    }
+  }
+  
+  // Check habits again at 8:00 PM
+  if (currentTime === '20:00' && !notificationState.habitsReminder2Sent) {
+    const hasHabits = hasTodayEntry(habits, 'habits');
+    if (!hasHabits) {
+      sendNotification('🌙 Evening Check-in', 'Don\'t forget to complete your habits for today!', 'habits-2');
+      notificationState.habitsReminder2Sent = true;
+    }
+  }
+}
+
+// Initialize notification system
+requestNotificationPermission();
+
+// Check reminders every minute
+setInterval(checkAndSendReminders, 60000);
+
+// Check immediately on page load
+checkAndSendReminders();
+
+// ==========================================
 // SUPABASE SETUP & INITIALIZATION
 // ==========================================
 
