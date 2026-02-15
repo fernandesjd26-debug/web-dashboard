@@ -447,6 +447,51 @@ ul li:last-child {
   display: block;
 }
 
+/* PDF Guide Feature */
+.guide-button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  background: #3b82f6;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  z-index: 10;
+}
+
+.guide-button:hover {
+  background: #2563eb;
+}
+
+.guide-button:hover + textarea {
+  margin-right: 420px;
+  transition: margin-right 0.3s ease;
+}
+
+.guide-button:hover ~ .pdf-preview {
+  display: block;
+}
+
+.pdf-preview {
+  display: none;
+  position: fixed;
+  right: 20px;
+  top: 120px;
+  width: 400px;
+  height: calc(100vh - 140px);
+  background: white;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.pdf-preview iframe {
+  border: none;
+}
+
 #diary-section textarea {
   width: 100%;
   max-width: 500px;
