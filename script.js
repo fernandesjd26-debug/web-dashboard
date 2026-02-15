@@ -941,6 +941,60 @@ document.getElementById("deleteHabitsWeek").onclick = async () => {
   renderHabits();
 };
 
+document.getElementById("copyHabitsFromPrevWeek").onclick = async () => {
+  const currentWeekKey = getHabitsWeekKey(habitsWeekOffset);
+  const prevWeekKey = getHabitsWeekKey(habitsWeekOffset - 1);
+  
+  // Check if previous week has habits
+  if (!habits[prevWeekKey] || habits[prevWeekKey].length === 0) {
+    alert("No habits found in the previous week to copy!");
+    return;
+  }
+  
+  // Check if current week already has habits
+  if (habits[currentWeekKey] && habits[currentWeekKey].length > 0) {
+    if (!confirm("This week already has habits. Do you want to add the previous week's habits to it?")) {
+      return;
+    }
+  }
+  
+  // Initialize current week if it doesn't exist
+  if (!habits[currentWeekKey]) {
+    habits[currentWeekKey] = [];
+  }
+  
+  // Copy habit names from previous week (without the checked state)
+  const prevHabits = habits[prevWeekKey];
+  const existingHabitNames = habits[currentWeekKey].map(h => h.habit);
+  
+  for (const prevHabit of prevHabits) {
+    // Only add if habit doesn't already exist in current week
+    if (!existingHabitNames.includes(prevHabit.habit)) {
+      const newHabit = {
+        habit: prevHabit.habit,
+        days: [false, false, false, false, false, false, false]
+      };
+      habits[currentWeekKey].push(newHabit);
+      
+      // Save to Supabase
+      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+        await supabaseClient
+          .from("habits")
+          .insert({
+            week_key: currentWeekKey,
+            habit: newHabit.habit,
+            day_index: dayIndex,
+            completed: false
+          });
+      }
+    }
+  }
+  
+  saveHabits();
+  renderHabits();
+  alert("Habits copied successfully!");
+};
+
 renderHabits();
 
 /*******************************
