@@ -71,6 +71,96 @@ if (document.readyState === 'loading') {
 }
 
 // ==========================================
+// GOALS SYSTEM
+// ==========================================
+
+const GOALS_STORAGE_KEY = 'yearlyGoals2026';
+
+function loadGoals() {
+  const stored = localStorage.getItem(GOALS_STORAGE_KEY);
+  return stored ? JSON.parse(stored) : [];
+}
+
+function saveGoals(goals) {
+  localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(goals));
+}
+
+function renderGoals() {
+  const goals = loadGoals();
+  const goalsList = document.getElementById('goalsList');
+  goalsList.innerHTML = '';
+  
+  if (goals.length === 0) {
+    goalsList.innerHTML = '<li style="text-align: center; color: #999; padding: 20px;">No goals yet. Add one to get started! 🎯</li>';
+    return;
+  }
+  
+  goals.forEach((goal, index) => {
+    const li = document.createElement('li');
+    li.className = 'goal-item';
+    li.innerHTML = `
+      <p class="goal-text">${goal}</p>
+      <button class="goal-delete" data-index="${index}">Delete</button>
+    `;
+    goalsList.appendChild(li);
+  });
+  
+  // Attach delete listeners
+  document.querySelectorAll('.goal-delete').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const index = parseInt(e.target.dataset.index);
+      const goals = loadGoals();
+      goals.splice(index, 1);
+      saveGoals(goals);
+      renderGoals();
+    });
+  });
+}
+
+function initGoals() {
+  console.log("🎯 Initializing goals section...");
+  renderGoals();
+  
+  const addGoalBtn = document.getElementById('addGoalBtn');
+  const goalInput = document.getElementById('goalInput');
+  
+  if (addGoalBtn && goalInput) {
+    addGoalBtn.addEventListener('click', addGoal);
+    goalInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        addGoal();
+      }
+    });
+  } else {
+    console.warn("⚠️ Goals elements not found in DOM");
+  }
+}
+
+function addGoal() {
+  const goalInput = document.getElementById('goalInput');
+  const goalText = goalInput.value.trim();
+  
+  if (!goalText) {
+    alert('Please enter a goal');
+    return;
+  }
+  
+  const goals = loadGoals();
+  goals.push(goalText);
+  saveGoals(goals);
+  goalInput.value = '';
+  renderGoals();
+  goalInput.focus();
+}
+
+// Initialize goals immediately
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initGoals);
+} else {
+  initGoals();
+}
+
+// ==========================================
 // NOTIFICATION SYSTEM FOR HABITS & DIARY
 // ==========================================
 
