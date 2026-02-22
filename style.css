@@ -267,13 +267,22 @@ nav button:hover {
 =============================== */
 
 .todo-day {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
+  margin-top: 2rem;
+  padding-top: 0;
 }
 
 .todo-day:first-child {
   margin-top: 0;
   padding-top: 0;
+}
+
+.todo-day-title {
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 0 0 15px 0;
+  letter-spacing: 0.5px;
 }
 
 /* ===============================

@@ -435,7 +435,7 @@ function renderTodos() {
   todos[weekKey].forEach((dayTodos, dayIndex) => {
     const dayEl = document.createElement("div");
     dayEl.className = "todo-day";
-    dayEl.innerHTML = `<strong>${days[dayIndex]}</strong>`;
+    dayEl.innerHTML = `<h3 class="todo-day-title">${days[dayIndex]}</h3>`;
 
     dayTodos.forEach((todo, index) => {
       const item = document.createElement("div");
