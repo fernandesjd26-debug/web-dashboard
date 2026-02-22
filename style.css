@@ -268,8 +268,12 @@ nav button:hover {
 
 .todo-day {
   margin-top: 1.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid #ddd; /* thin divider */
+  padding-top: 1rem;
+}
+
+.todo-day:first-child {
+  margin-top: 0;
+  padding-top: 0;
 }
 
 /* ===============================
@@ -277,11 +281,20 @@ nav button:hover {
 =============================== */
 
 .todo-item {
-  display: grid;
-  grid-template-columns: 90px 1fr 24px;
+  display: flex;
   align-items: center;
-  column-gap: 0.75rem;
-  padding: 0.5rem 0;
+  justify-content: space-between;
+  background: #f3f4f6;
+  padding: 14px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  border-left: 4px solid var(--accent);
+  transition: all 0.2s ease;
+}
+
+.todo-item:hover {
+  background: #e5e7eb;
+  transform: translateX(4px);
 }
 
 /* Day label (left column) */
@@ -289,10 +302,13 @@ nav button:hover {
   font-size: 0.9rem;
   color: #666;
   white-space: nowrap;
+  margin-right: 10px;
+  min-width: 80px;
 }
 
 /* Task text (middle column) */
 .todo-task {
+  flex: 1;
   min-width: 0;
   white-space: normal;
 }
@@ -313,7 +329,8 @@ nav button:hover {
   width: 16px;
   height: 16px;
   margin: 0;
-  justify-self: end;
+  margin-left: 10px;
+  flex-shrink: 0;
 }
 
 
