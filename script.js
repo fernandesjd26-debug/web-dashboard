@@ -1282,8 +1282,12 @@ function renderTodos() {
 
   groupedTodos.forEach(({ dayTitle, dayIndex, dayTodos }) => {
     const dayEl = document.createElement("div");
-    dayEl.className = "todo-day";
+    dayEl.className = "todo-day" + (dayIndex === GENERAL_DAY_INDEX ? " todo-general" : "");
     dayEl.innerHTML = `<h3 class="todo-day-title">${dayTitle}</h3>`;
+
+    if (dayTodos.length === 0) {
+      dayEl.innerHTML += `<div class="todo-day-empty">No tasks</div>`;
+    }
 
     dayTodos.forEach((todo, index) => {
       const item = document.createElement("div");

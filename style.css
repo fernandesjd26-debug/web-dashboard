@@ -468,83 +468,116 @@ nav button:hover {
 }
 
 /* ===============================
-   DAY GROUP (divider line)
+   DAYS GRID (planner layout)
+=============================== */
+
+#todoDays {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+/* General bucket spans full width */
+.todo-day.todo-general {
+  grid-column: 1 / -1;
+}
+
+/* ===============================
+   DAY CARD (bordered column)
 =============================== */
 
 .todo-day {
-  margin-top: 2rem;
-  padding-top: 0;
-}
-
-.todo-day:first-child {
-  margin-top: 0;
-  padding-top: 0;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--card-bg, #fff);
 }
 
 .todo-day-title {
   text-align: center;
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: var(--accent);
-  margin: 0 0 15px 0;
-  letter-spacing: 0.5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  padding: 7px 10px;
+  border-bottom: 1.5px solid #d1d5db;
+  background: #f9fafb;
+  margin: 0;
+}
+
+.todo-day-empty {
+  padding: 12px 10px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #c4c9d4;
+  font-style: italic;
 }
 
 /* ===============================
-   TODO ITEM (card layout)
+   TODO ITEM (planner row)
 =============================== */
 
 .todo-item {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
   align-items: center;
-  gap: 12px;
-  background: #f3f4f6;
-  padding: 14px 16px;
-  margin-bottom: 10px;
-  border-radius: 12px;
-  border-left: 4px solid var(--accent);
-  transition: all 0.2s ease;
+  gap: 8px;
+  padding: 7px 10px;
   cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px dotted #d1d5db;
+}
+
+.todo-item:last-child {
+  border-bottom: none;
 }
 
 .todo-item:hover {
-  background: #e5e7eb;
-  transform: translateX(4px) scale(1.005);
+  background: #f3f4f6;
 }
 
 .todo-item.done {
-  background: #e5e7eb;
-  border-left-color: #9ca3af;
-  box-shadow: inset 0 0 0 1px #d1d5db;
+  background: #fafafa;
 }
 
 /* Task content and optional note */
+.todo-content {
+  flex: 1;
+  min-width: 0;
+}
+
 .todo-content span {
   display: block;
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: var(--text);
-  text-align: center;
-  font-weight: 600;
+  text-align: left;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .todo-note {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   color: var(--muted);
-  margin-top: 0.25rem;
-  text-align: center;
+  margin-top: 0.1rem;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .todo-item.done .todo-content span,
 .todo-item.done .todo-note {
   text-decoration: line-through;
-  opacity: 0.65;
+  opacity: 0.5;
 }
 
-/* Checkbox (right column) */
+/* Checkbox */
 .todo-checkbox {
-  width: 18px;
-  height: 18px;
+  width: 13px;
+  height: 13px;
   margin: 0;
   flex-shrink: 0;
   accent-color: var(--accent);
@@ -554,40 +587,62 @@ nav button:hover {
 .todo-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
+  flex-shrink: 0;
 }
 
 .todo-move,
 .todo-delete {
   border: none;
-  border-radius: 8px;
-  min-width: 30px;
-  height: 30px;
+  border-radius: 4px;
+  min-width: 22px;
+  height: 22px;
+  font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
+  padding: 0;
+  line-height: 1;
 }
 
 .todo-move {
-  background: #d1d5db;
-  color: #111827;
+  background: #e5e7eb;
+  color: #374151;
 }
 
 .todo-move:hover:not(:disabled) {
-  background: #9ca3af;
+  background: #d1d5db;
 }
 
 .todo-move:disabled {
-  opacity: 0.35;
+  opacity: 0.28;
   cursor: not-allowed;
 }
 
 .todo-delete {
-  background: #ef4444;
-  color: white;
+  background: transparent;
+  color: #ef4444;
+  font-size: 0.95rem;
 }
 
 .todo-delete:hover {
-  background: #dc2626;
+  background: #fee2e2;
+}
+
+/* Responsive: 2 cols on tablet */
+@media (max-width: 900px) and (min-width: 601px) {
+  #todoDays {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Responsive: 1 col on mobile */
+@media (max-width: 600px) {
+  #todoDays {
+    grid-template-columns: 1fr;
+  }
+  .todo-day.todo-general {
+    grid-column: auto;
+  }
 }
 
 
