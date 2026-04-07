@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="description" content="Personal dashboard with goals, budget, habits, and more">
   <title>My Dashboard</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%234f46e5' width='192' height='192'/><text x='50%' y='50%' font-size='100' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>D</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%234f46e5' width='180' height='180'/><text x='50%' y='50%' font-size='90' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>D</text></svg>">
   
   <!-- Supabase Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -16,10 +22,23 @@
 </head>
 <body>
 
-
+<div id="auth-overlay" class="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-logo">D</div>
+    <h2>My Dashboard</h2>
+    <p class="auth-subtitle">Sign in to your personal dashboard</p>
+    <div id="auth-error" class="auth-error"></div>
+    <input id="auth-email" type="email" placeholder="Email address" autocomplete="email">
+    <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="auth-login-btn" class="auth-btn-primary">Log in</button>
+    <div class="auth-divider"><span>or</span></div>
+    <button id="auth-signup-btn" class="auth-btn-secondary">Create account</button>
+  </div>
+</div>
 
 <header>
   <h1>My Dashboard</h1>
+  <button id="logout-btn" class="logout-btn">Log out</button>
 </header>
 
 <nav>
@@ -29,6 +48,7 @@
   <button onclick="showSection('habits-section')">Habits</button>
   <button onclick="showSection('diary-section')">Diary</button>
   <button onclick="showSection('calendar-section')">Calendar</button>
+  <button onclick="showSection('reminders-section')">Reminders</button>
 </nav>
 
 <section id="motivation-section" class="page-section active">
@@ -181,6 +201,88 @@
   <button id="addEvent">Add Event</button>
 
   <div id="calendarDiaryEntries"></div>
+</section>
+
+<section id="reminders-section" class="page-section">
+  <div class="reminders-shell">
+    <div class="reminders-panel reminders-intro-panel">
+      <div>
+        <p class="reminders-eyebrow">Notification Center</p>
+        <h2>Schedule reminders for specific times</h2>
+        <p class="reminders-copy">Create repeating reminders for any time of day, test them, and keep the dashboard installed so the scheduler can keep checking in the background while the app stays open on your device.</p>
+      </div>
+
+      <div class="reminders-status-row">
+        <div>
+          <p class="reminders-status-label">Notification permission</p>
+          <p id="notificationPermissionStatus" class="reminders-status-value">Checking...</p>
+        </div>
+        <div>
+          <p class="reminders-status-label">App mode</p>
+          <p id="appInstallStatus" class="reminders-status-value">Checking...</p>
+        </div>
+      </div>
+
+      <p id="notificationCapabilityNote" class="reminders-note"></p>
+
+      <div class="reminders-actions">
+        <button id="enableNotificationsBtn" type="button">Enable notifications</button>
+        <button id="testNotificationBtn" type="button" class="secondary-action">Send test notification</button>
+      </div>
+    </div>
+
+    <div class="reminders-panel">
+      <h3>Reminder builder</h3>
+
+      <div class="reminder-form-grid">
+        <label>
+          <span>Reminder name</span>
+          <input id="reminderName" type="text" maxlength="80" placeholder="Morning habits">
+        </label>
+
+        <label>
+          <span>Time</span>
+          <input id="reminderTime" type="time">
+        </label>
+
+        <label>
+          <span>Notification title</span>
+          <input id="reminderTitle" type="text" maxlength="80" placeholder="Time to check in">
+        </label>
+
+        <label>
+          <span>Message</span>
+          <input id="reminderMessage" type="text" maxlength="160" placeholder="Open your dashboard and complete the next step.">
+        </label>
+      </div>
+
+      <div class="reminder-days-block">
+        <p>Repeat on</p>
+        <div class="reminder-days" id="reminderDays">
+          <label><input type="checkbox" value="1" checked>Mon</label>
+          <label><input type="checkbox" value="2" checked>Tue</label>
+          <label><input type="checkbox" value="3" checked>Wed</label>
+          <label><input type="checkbox" value="4" checked>Thu</label>
+          <label><input type="checkbox" value="5" checked>Fri</label>
+          <label><input type="checkbox" value="6" checked>Sat</label>
+          <label><input type="checkbox" value="0" checked>Sun</label>
+        </div>
+      </div>
+
+      <div class="reminder-builder-actions">
+        <button id="saveReminderBtn" type="button">Save reminder</button>
+        <button id="resetReminderFormBtn" type="button" class="secondary-action">Clear form</button>
+      </div>
+    </div>
+
+    <div class="reminders-panel">
+      <div class="reminders-list-header">
+        <h3>Active schedules</h3>
+        <p>Your reminders are stored on this device so the installed app can manage them locally.</p>
+      </div>
+      <div id="remindersList" class="reminders-list"></div>
+    </div>
+  </div>
 </section>
 
 

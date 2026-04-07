@@ -17,8 +17,11 @@ body {
 header {
   background: var(--accent);
   color: white;
-  padding: 10px;
-  text-align: center;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
   font-size: 1.5rem;
 }
 
@@ -43,6 +46,208 @@ nav button {
 nav button:hover {
   background: #c7c7c7;
   text-align: center;
+}
+
+.reminders-shell {
+  max-width: 1100px;
+  margin: 24px auto 40px;
+  padding: 0 16px;
+  display: grid;
+  gap: 18px;
+}
+
+.reminders-panel {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.08);
+}
+
+.reminders-intro-panel {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(255, 255, 255, 0.96));
+}
+
+.reminders-eyebrow {
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.reminders-panel h2,
+.reminders-panel h3 {
+  margin-top: 0;
+}
+
+.reminders-copy,
+.reminders-list-header p,
+.reminders-note {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.reminders-status-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.reminders-status-label {
+  margin: 0 0 4px;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.reminders-status-value {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.reminders-actions,
+.reminder-builder-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.reminders-actions button,
+.reminder-builder-actions button,
+.reminder-card-actions button {
+  border: none;
+  border-radius: 10px;
+  padding: 11px 16px;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondary-action {
+  background: #e5e7eb !important;
+  color: #111827 !important;
+}
+
+.reminder-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.reminder-form-grid label,
+.reminder-days-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reminder-form-grid span,
+.reminder-days-block p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.reminder-form-grid input {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  font: inherit;
+}
+
+.reminder-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.reminder-days label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f3f4f6;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.95rem;
+}
+
+.reminders-list {
+  display: grid;
+  gap: 12px;
+}
+
+.reminder-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+  background: #fbfbff;
+}
+
+.reminder-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+}
+
+.reminder-card-header h4,
+.reminder-card-header p,
+.reminder-card-body p,
+.reminder-empty-state p {
+  margin: 0;
+}
+
+.reminder-time {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.reminder-day-summary,
+.reminder-card-body p,
+.reminder-card-meta {
+  color: var(--muted);
+}
+
+.reminder-card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.reminder-toggle.off {
+  background: #f59e0b;
+}
+
+.reminder-delete {
+  background: #ef4444 !important;
+}
+
+.reminder-empty-state {
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  text-align: center;
+  background: #fafafa;
+}
+
+@media (max-width: 640px) {
+  .reminders-panel {
+    padding: 18px;
+  }
+
+  .reminder-card-header {
+    flex-direction: column;
+  }
 }
 
 .section {
@@ -835,4 +1040,144 @@ input, textarea {
   padding: 0.6rem;
   margin-bottom: 1rem;
 }
+
+/* ==========================================
+   AUTHENTICATION
+   ========================================== */
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.auth-box {
+  background: white;
+  border-radius: 16px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.auth-logo {
+  width: 56px;
+  height: 56px;
+  background: var(--accent);
+  color: white;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 0 auto 4px;
+}
+
+.auth-box h2 {
+  text-align: center;
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.auth-subtitle {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0 0 4px;
+}
+
+.auth-box input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+.auth-box input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
+}
+
+.auth-btn-primary {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 11px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+
+.auth-btn-primary:hover { background: #4338ca; }
+
+.auth-btn-primary:disabled,
+.auth-btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-btn-secondary {
+  background: white;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  width: 100%;
+}
+
+.auth-btn-secondary:hover { background: #eef2ff; }
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.auth-error {
+  display: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.logout-btn {
+  position: absolute;
+  right: 16px;
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.5);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: none;
+}
+
+.logout-btn:hover { background: rgba(255,255,255,0.35); }
 

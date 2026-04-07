@@ -1,4 +1,36 @@
 // ==========================================
+// PWA SERVICE WORKER REGISTRATION
+// ==========================================
+
+// Temporary safeguard: disable SW while auth rollout is stabilized.
+const ENABLE_SERVICE_WORKER = false;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    if (ENABLE_SERVICE_WORKER) {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(registration => {
+          console.log('Service Worker registered:', registration);
+        })
+        .catch(error => console.log('Service Worker registration failed:', error));
+      return;
+    }
+
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(registration => registration.unregister()));
+      if ('caches' in window) {
+        const cacheKeys = await caches.keys();
+        await Promise.all(cacheKeys.map(cacheKey => caches.delete(cacheKey)));
+      }
+      console.log('Service worker disabled and old caches cleared.');
+    } catch (error) {
+      console.log('Could not clear old service worker/cache state:', error);
+    }
+  });
+}
+
+// ==========================================
 // MOTIVATIONAL PHRASES
 // ==========================================
 
@@ -164,108 +196,718 @@ if (document.readyState === 'loading') {
 // NOTIFICATION SYSTEM FOR HABITS & DIARY
 // ==========================================
 
-const notificationTimes = {
-  habits: ['06:50', '20:00'],  // 6:50 AM and 8:00 PM
-  diary: ['20:00']              // 8:00 PM
-};
+const APP_NOTIFICATION_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%234f46e5' width='192' height='192'/%3E%3Ctext x='50%25' y='50%25' font-size='100' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ED%3C/text%3E%3C/svg%3E";
+const REMINDER_STORAGE_KEY = 'dashboardReminderSchedules';
+const REMINDER_META_KEY = 'dashboardReminderMeta';
+const NATIVE_REMINDER_IDS_KEY = 'dashboardNativeReminderIds';
+const REMINDER_CATCH_UP_WINDOW_MS = 30 * 60 * 1000;
+const REMINDER_DAY_LABELS = [
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' },
+  { value: 0, label: 'Sun' }
+];
+const DEFAULT_REMINDER_SCHEDULES = [
+  {
+    id: 'morning-habits',
+    name: 'Morning habits',
+    time: '06:50',
+    title: 'Morning habits',
+    message: 'Open your dashboard and fill in today\'s habits.',
+    days: [1, 2, 3, 4, 5, 6, 0],
+    enabled: true
+  },
+  {
+    id: 'morning-tasks',
+    name: 'Morning tasks',
+    time: '08:00',
+    title: 'Morning tasks',
+    message: 'Check your to-do list and plan today\'s work.',
+    days: [1, 2, 3, 4, 5, 6, 0],
+    enabled: true
+  },
+  {
+    id: 'afternoon-focus',
+    name: 'Afternoon focus',
+    time: '14:00',
+    title: 'Afternoon focus',
+    message: 'Review what is left for today and keep moving.',
+    days: [1, 2, 3, 4, 5, 6, 0],
+    enabled: true
+  },
+  {
+    id: 'evening-reflection',
+    name: 'Evening reflection',
+    time: '20:00',
+    title: 'Evening reflection',
+    message: 'Open your diary, update habits, and close the day cleanly.',
+    days: [1, 2, 3, 4, 5, 6, 0],
+    enabled: true
+  }
+];
 
-let notificationState = {
-  habitsReminder1Sent: false,
-  habitsReminder2Sent: false,
-  diaryReminderSent: false
-};
+let reminderEditId = null;
 
-// Request notification permission
-function requestNotificationPermission() {
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission().then(permission => {
-      console.log('Notification permission:', permission);
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function createReminderId() {
+  return `reminder-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+}
+
+function normalizeReminderSchedule(schedule, fallbackId) {
+  const normalizedDays = Array.isArray(schedule.days)
+    ? Array.from(new Set(schedule.days.map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6)))
+    : [];
+
+  return {
+    id: schedule.id || fallbackId || createReminderId(),
+    name: (schedule.name || 'Untitled reminder').trim(),
+    time: schedule.time || '09:00',
+    title: (schedule.title || 'Dashboard reminder').trim(),
+    message: (schedule.message || 'Open the dashboard and continue your plan.').trim(),
+    days: normalizedDays.length ? normalizedDays : [1, 2, 3, 4, 5, 6, 0],
+    enabled: schedule.enabled !== false
+  };
+}
+
+function loadReminderSchedules() {
+  const stored = localStorage.getItem(REMINDER_STORAGE_KEY);
+
+  if (!stored) {
+    return DEFAULT_REMINDER_SCHEDULES.map(schedule => normalizeReminderSchedule(schedule, schedule.id));
+  }
+
+  try {
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return DEFAULT_REMINDER_SCHEDULES.map(schedule => normalizeReminderSchedule(schedule, schedule.id));
+    }
+
+    return parsed.map((schedule, index) => normalizeReminderSchedule(schedule, `loaded-${index}`));
+  } catch (error) {
+    console.error('Failed to load reminder schedules:', error);
+    return DEFAULT_REMINDER_SCHEDULES.map(schedule => normalizeReminderSchedule(schedule, schedule.id));
+  }
+}
+
+function saveReminderSchedules() {
+  localStorage.setItem(REMINDER_STORAGE_KEY, JSON.stringify(reminderSchedules));
+}
+
+function loadReminderMeta() {
+  const stored = localStorage.getItem(REMINDER_META_KEY);
+
+  if (!stored) {
+    return {
+      lastCheckedAt: null,
+      deliveredOn: {}
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(stored);
+    return {
+      lastCheckedAt: parsed.lastCheckedAt || null,
+      deliveredOn: parsed.deliveredOn || {}
+    };
+  } catch (error) {
+    console.error('Failed to load reminder metadata:', error);
+    return {
+      lastCheckedAt: null,
+      deliveredOn: {}
+    };
+  }
+}
+
+function saveReminderMeta() {
+  localStorage.setItem(REMINDER_META_KEY, JSON.stringify(reminderMeta));
+}
+
+function getDateKey(date = new Date()) {
+  return date.toISOString().split('T')[0];
+}
+
+function formatReminderTime(time) {
+  const [hours, minutes] = time.split(':').map(Number);
+  const displayDate = new Date();
+  displayDate.setHours(hours, minutes, 0, 0);
+
+  return displayDate.toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+
+function formatReminderDays(days) {
+  const orderedDays = REMINDER_DAY_LABELS.filter(day => days.includes(day.value)).map(day => day.label);
+
+  if (orderedDays.length === 7) {
+    return 'Every day';
+  }
+
+  if (orderedDays.join(',') === 'Mon,Tue,Wed,Thu,Fri') {
+    return 'Weekdays';
+  }
+
+  if (orderedDays.join(',') === 'Sat,Sun') {
+    return 'Weekends';
+  }
+
+  return orderedDays.join(', ');
+}
+
+function isReminderScheduledForDate(schedule, date) {
+  return schedule.days.includes(date.getDay());
+}
+
+function getReminderScheduledDate(schedule, referenceDate) {
+  const [hours, minutes] = schedule.time.split(':').map(Number);
+  const scheduledDate = new Date(referenceDate);
+  scheduledDate.setHours(hours, minutes, 0, 0);
+  return scheduledDate;
+}
+
+function getCapacitorBridge() {
+  return window.Capacitor || null;
+}
+
+function getCapacitorPlatform() {
+  const capacitorBridge = getCapacitorBridge();
+
+  if (!capacitorBridge || typeof capacitorBridge.getPlatform !== 'function') {
+    return 'web';
+  }
+
+  return capacitorBridge.getPlatform();
+}
+
+function isNativeCapacitorApp() {
+  const capacitorBridge = getCapacitorBridge();
+
+  if (!capacitorBridge) {
+    return false;
+  }
+
+  if (typeof capacitorBridge.isNativePlatform === 'function') {
+    return capacitorBridge.isNativePlatform();
+  }
+
+  return getCapacitorPlatform() !== 'web';
+}
+
+function getNativeLocalNotificationsPlugin() {
+  return getCapacitorBridge()?.Plugins?.LocalNotifications || null;
+}
+
+function hasNativeLocalNotifications() {
+  return isNativeCapacitorApp() && !!getNativeLocalNotificationsPlugin();
+}
+
+function loadNativeReminderIds() {
+  const stored = localStorage.getItem(NATIVE_REMINDER_IDS_KEY);
+
+  if (!stored) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed.map(Number).filter(Number.isInteger) : [];
+  } catch (error) {
+    console.error('Failed to load native reminder ids:', error);
+    return [];
+  }
+}
+
+function saveNativeReminderIds() {
+  localStorage.setItem(NATIVE_REMINDER_IDS_KEY, JSON.stringify(nativeReminderIds));
+}
+
+function mapJsDayToCapacitorWeekday(day) {
+  return day === 0 ? 1 : day + 1;
+}
+
+function getReminderBaseNotificationId(reminderId) {
+  let hash = 0;
+
+  for (const character of reminderId) {
+    hash = ((hash << 5) - hash) + character.charCodeAt(0);
+    hash |= 0;
+  }
+
+  return (Math.abs(hash) % 200000) * 10;
+}
+
+function getNativeReminderNotificationId(reminderId, day) {
+  return getReminderBaseNotificationId(reminderId) + mapJsDayToCapacitorWeekday(day);
+}
+
+function buildNativeReminderNotifications() {
+  return reminderSchedules
+    .filter(schedule => schedule.enabled)
+    .flatMap(schedule => {
+      const [hour, minute] = schedule.time.split(':').map(Number);
+
+      return schedule.days.map(day => ({
+        id: getNativeReminderNotificationId(schedule.id, day),
+        title: schedule.title,
+        body: schedule.message,
+        schedule: {
+          on: {
+            weekday: mapJsDayToCapacitorWeekday(day),
+            hour,
+            minute
+          },
+          repeats: true
+        },
+        extra: {
+          reminderId: schedule.id,
+          source: 'dashboard-reminder'
+        }
+      }));
     });
-  }
 }
 
-// Check if today's entry exists
-function hasTodayEntry(dataObj, entryType) {
-  const today = new Date().toISOString().split('T')[0];
-  
-  if (entryType === 'habits') {
-    const weekKey = getWeekKey(new Date());
-    if (!dataObj[weekKey]) return false;
-    const todayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
-    return dataObj[weekKey].length > todayIndex && dataObj[weekKey][todayIndex].length > 0;
+async function syncNativeReminderSchedules() {
+  const localNotifications = getNativeLocalNotificationsPlugin();
+  if (!localNotifications) {
+    return false;
   }
-  
-  if (entryType === 'diary') {
-    return dataObj && dataObj.some(entry => entry.date && entry.date.includes(today));
-  }
-  
-  return false;
-}
 
-// Send notification
-function sendNotification(title, body, type) {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, {
-      body: body,
-      icon: '🎯',
-      badge: '🎯',
-      tag: type,
-      requireInteraction: true
+  if (nativeReminderIds.length > 0) {
+    await localNotifications.cancel({
+      notifications: nativeReminderIds.map(id => ({ id }))
     });
-    console.log(`✅ Notification sent: ${title}`);
+    nativeReminderIds = [];
+    saveNativeReminderIds();
+  }
+
+  const permissionStatus = await localNotifications.checkPermissions();
+  if (permissionStatus.display !== 'granted') {
+    updateNotificationStatus();
+    return false;
+  }
+
+  const notifications = buildNativeReminderNotifications();
+  if (notifications.length > 0) {
+    await localNotifications.schedule({ notifications });
+  }
+
+  nativeReminderIds = notifications.map(notification => notification.id);
+  saveNativeReminderIds();
+  updateNotificationStatus();
+  return true;
+}
+
+function syncReminderEngine() {
+  if (hasNativeLocalNotifications()) {
+    return syncNativeReminderSchedules();
+  }
+
+  return checkReminderSchedules();
+}
+
+async function requestNotificationPermission() {
+  const localNotifications = getNativeLocalNotificationsPlugin();
+  if (localNotifications) {
+    const currentStatus = await localNotifications.checkPermissions();
+    if (currentStatus.display === 'granted') {
+      updateNotificationStatus();
+      await syncNativeReminderSchedules();
+      return currentStatus.display;
+    }
+
+    const permissionStatus = await localNotifications.requestPermissions();
+    updateNotificationStatus();
+    if (permissionStatus.display === 'granted') {
+      await syncNativeReminderSchedules();
+    }
+    return permissionStatus.display;
+  }
+
+  if (!('Notification' in window)) {
+    updateNotificationStatus();
+    return 'unsupported';
+  }
+
+  const permission = await Notification.requestPermission();
+  console.log('Notification permission:', permission);
+  updateNotificationStatus();
+  return permission;
+}
+
+async function sendNotification(title, body, type = 'dashboard-reminder') {
+  const localNotifications = getNativeLocalNotificationsPlugin();
+  if (localNotifications) {
+    const permissionStatus = await localNotifications.checkPermissions();
+    if (permissionStatus.display !== 'granted') {
+      updateNotificationStatus();
+      return false;
+    }
+
+    await localNotifications.schedule({
+      notifications: [{
+        id: Math.floor(Date.now() % 2000000000),
+        title,
+        body,
+        schedule: {
+          at: new Date(Date.now() + 1000)
+        },
+        extra: {
+          source: 'dashboard-immediate',
+          type
+        }
+      }]
+    });
+
+    return true;
+  }
+
+  if (!('Notification' in window) || Notification.permission !== 'granted') {
+    updateNotificationStatus();
+    return false;
+  }
+
+  const notificationOptions = {
+    body,
+    icon: APP_NOTIFICATION_ICON,
+    badge: APP_NOTIFICATION_ICON,
+    tag: type,
+    data: { url: './' }
+  };
+
+  try {
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(title, notificationOptions);
+    } else {
+      new Notification(title, notificationOptions);
+    }
+
+    console.log(`Notification sent: ${title}`);
+    return true;
+  } catch (error) {
+    console.error('Failed to send notification:', error);
+    return false;
   }
 }
 
-// Check and send reminders based on current time
-function checkAndSendReminders() {
+function populateReminderForm(scheduleId) {
+  const schedule = reminderSchedules.find(item => item.id === scheduleId);
+  if (!schedule) {
+    return;
+  }
+
+  reminderEditId = schedule.id;
+  reminderNameInput.value = schedule.name;
+  reminderTimeInput.value = schedule.time;
+  reminderTitleInput.value = schedule.title;
+  reminderMessageInput.value = schedule.message;
+  reminderDayInputs.forEach(input => {
+    input.checked = schedule.days.includes(Number(input.value));
+  });
+  saveReminderBtn.textContent = 'Update reminder';
+}
+
+function resetReminderForm() {
+  reminderEditId = null;
+  reminderNameInput.value = '';
+  reminderTimeInput.value = '';
+  reminderTitleInput.value = '';
+  reminderMessageInput.value = '';
+  reminderDayInputs.forEach(input => {
+    input.checked = true;
+  });
+  saveReminderBtn.textContent = 'Save reminder';
+}
+
+function readReminderForm() {
+  const name = reminderNameInput.value.trim();
+  const time = reminderTimeInput.value;
+  const title = reminderTitleInput.value.trim();
+  const message = reminderMessageInput.value.trim();
+  const days = reminderDayInputs
+    .filter(input => input.checked)
+    .map(input => Number(input.value));
+
+  if (!name || !time || !title || !message) {
+    alert('Fill in the reminder name, time, title, and message.');
+    return null;
+  }
+
+  if (days.length === 0) {
+    alert('Select at least one day for the reminder.');
+    return null;
+  }
+
+  return {
+    id: reminderEditId || createReminderId(),
+    name,
+    time,
+    title,
+    message,
+    days,
+    enabled: true
+  };
+}
+
+function renderReminderSchedules() {
+  if (reminderSchedules.length === 0) {
+    remindersListEl.innerHTML = `
+      <div class="reminder-empty-state">
+        <p>No reminders yet.</p>
+        <p>Build your first schedule and the app will check for it every minute.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const sortedSchedules = [...reminderSchedules].sort((left, right) => left.time.localeCompare(right.time));
+
+  remindersListEl.innerHTML = sortedSchedules.map(schedule => `
+    <article class="reminder-card">
+      <div class="reminder-card-header">
+        <div>
+          <h4>${escapeHtml(schedule.name)}</h4>
+          <p class="reminder-day-summary">${escapeHtml(formatReminderDays(schedule.days))}</p>
+        </div>
+        <p class="reminder-time">${escapeHtml(formatReminderTime(schedule.time))}</p>
+      </div>
+      <div class="reminder-card-body">
+        <p><strong>${escapeHtml(schedule.title)}</strong></p>
+        <p>${escapeHtml(schedule.message)}</p>
+        <p class="reminder-card-meta">Status: ${schedule.enabled ? 'Enabled' : 'Paused'}</p>
+      </div>
+      <div class="reminder-card-actions">
+        <button type="button" data-action="edit" data-id="${escapeHtml(schedule.id)}">Edit</button>
+        <button type="button" class="reminder-toggle ${schedule.enabled ? '' : 'off'}" data-action="toggle" data-id="${escapeHtml(schedule.id)}">${schedule.enabled ? 'Pause' : 'Enable'}</button>
+        <button type="button" class="reminder-delete" data-action="delete" data-id="${escapeHtml(schedule.id)}">Delete</button>
+      </div>
+    </article>
+  `).join('');
+}
+
+async function checkReminderSchedules() {
+  if (hasNativeLocalNotifications()) {
+    return syncNativeReminderSchedules();
+  }
+
   const now = new Date();
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  const currentTime = `${hours}:${minutes}`;
-  
-  // Reset reminders at midnight
-  if (currentTime === '00:01') {
-    notificationState.habitsReminder1Sent = false;
-    notificationState.habitsReminder2Sent = false;
-    notificationState.diaryReminderSent = false;
-  }
-  
-  // Check habits at 6:50 AM
-  if (currentTime === '06:50' && !notificationState.habitsReminder1Sent) {
-    const hasHabits = hasTodayEntry(habits, 'habits');
-    if (!hasHabits) {
-      sendNotification('🌅 Good Morning!', 'Don\'t forget to fill your habits for today!', 'habits-1');
-      notificationState.habitsReminder1Sent = true;
+  const lastCheckedAt = reminderMeta.lastCheckedAt ? new Date(reminderMeta.lastCheckedAt) : new Date(now.getTime() - 60000);
+  const todayKey = getDateKey(now);
+
+  for (const schedule of reminderSchedules) {
+    if (!schedule.enabled || !isReminderScheduledForDate(schedule, now)) {
+      continue;
+    }
+
+    const scheduledDate = getReminderScheduledDate(schedule, now);
+    const alreadyDeliveredToday = reminderMeta.deliveredOn[schedule.id] === todayKey;
+    const isDueNow = scheduledDate <= now;
+    const becameDueSinceLastCheck = scheduledDate > lastCheckedAt;
+    const stillFresh = now.getTime() - scheduledDate.getTime() <= REMINDER_CATCH_UP_WINDOW_MS;
+
+    if (!alreadyDeliveredToday && isDueNow && becameDueSinceLastCheck && stillFresh) {
+      const sent = await sendNotification(schedule.title, schedule.message, schedule.id);
+      if (sent) {
+        reminderMeta.deliveredOn[schedule.id] = todayKey;
+      }
     }
   }
-  
-  // Check diary at 8:00 PM
-  if (currentTime === '20:00' && !notificationState.diaryReminderSent) {
-    const hasDiary = hasTodayEntry(diary, 'diary');
-    if (!hasDiary) {
-      sendNotification('📔 Evening Reminder', 'Time to reflect! Have you written in your diary today?', 'diary');
-      notificationState.diaryReminderSent = true;
-    }
+
+  reminderMeta.lastCheckedAt = now.toISOString();
+  saveReminderMeta();
+}
+
+function updateNotificationStatus() {
+  const localNotifications = getNativeLocalNotificationsPlugin();
+  if (localNotifications) {
+    const platform = getCapacitorPlatform() === 'ios' ? 'Native iPhone app' : 'Native app';
+    appInstallStatus.textContent = platform;
+    notificationPermissionStatus.textContent = 'Checking native permission...';
+    notificationCapabilityNote.textContent = 'This build uses native local notifications. Saved reminders are scheduled directly on the device instead of relying on the browser timer.';
+
+    localNotifications.checkPermissions()
+      .then(permissionStatus => {
+        const permissionLabels = {
+          granted: 'Granted',
+          denied: 'Blocked',
+          prompt: 'Not requested',
+          'prompt-with-rationale': 'Needs request'
+        };
+        notificationPermissionStatus.textContent = permissionLabels[permissionStatus.display] || permissionStatus.display;
+      })
+      .catch(error => {
+        console.error('Failed to check native notification permission:', error);
+        notificationPermissionStatus.textContent = 'Permission check failed';
+      });
+    return;
   }
-  
-  // Check habits again at 8:00 PM
-  if (currentTime === '20:00' && !notificationState.habitsReminder2Sent) {
-    const hasHabits = hasTodayEntry(habits, 'habits');
-    if (!hasHabits) {
-      sendNotification('🌙 Evening Check-in', 'Don\'t forget to complete your habits for today!', 'habits-2');
-      notificationState.habitsReminder2Sent = true;
+
+  if (!('Notification' in window)) {
+    notificationPermissionStatus.textContent = 'Not supported in this browser';
+    appInstallStatus.textContent = 'Browser tab only';
+    notificationCapabilityNote.textContent = 'This browser does not support the Notifications API. Use a Chromium-based browser and install the app for the most reliable results.';
+    return;
+  }
+
+  const isInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const permission = Notification.permission;
+  const permissionLabels = {
+    granted: 'Granted',
+    denied: 'Blocked',
+    default: 'Not requested'
+  };
+
+  notificationPermissionStatus.textContent = permissionLabels[permission] || permission;
+  appInstallStatus.textContent = isInstalled ? 'Installed app window' : 'Browser tab';
+  notificationCapabilityNote.textContent = isInstalled
+    ? 'Installed mode gives this scheduler the best chance to stay active, but browsers still cannot guarantee alarms after the app is fully closed.'
+    : 'Install the app from the browser menu and keep notifications allowed. Browser-based reminders work best when the app stays installed and is opened regularly.';
+}
+
+function saveReminderFromForm() {
+  const reminder = readReminderForm();
+  if (!reminder) {
+    return;
+  }
+
+  const existingIndex = reminderSchedules.findIndex(schedule => schedule.id === reminder.id);
+  if (existingIndex >= 0) {
+    const previousEnabled = reminderSchedules[existingIndex].enabled;
+    reminder.enabled = previousEnabled;
+    reminderSchedules[existingIndex] = reminder;
+  } else {
+    reminderSchedules.push(reminder);
+  }
+
+  saveReminderSchedules();
+  renderReminderSchedules();
+  resetReminderForm();
+  syncReminderEngine().catch(error => console.error('Reminder sync failed:', error));
+}
+
+function handleReminderListClick(event) {
+  const button = event.target.closest('button[data-action]');
+  if (!button) {
+    return;
+  }
+
+  const action = button.dataset.action;
+  const scheduleId = button.dataset.id;
+  const scheduleIndex = reminderSchedules.findIndex(schedule => schedule.id === scheduleId);
+
+  if (scheduleIndex === -1) {
+    return;
+  }
+
+  if (action === 'edit') {
+    populateReminderForm(scheduleId);
+    showSection('reminders-section');
+    return;
+  }
+
+  if (action === 'toggle') {
+    reminderSchedules[scheduleIndex].enabled = !reminderSchedules[scheduleIndex].enabled;
+    saveReminderSchedules();
+    renderReminderSchedules();
+    syncReminderEngine().catch(error => console.error('Reminder sync failed:', error));
+    return;
+  }
+
+  if (action === 'delete') {
+    reminderSchedules.splice(scheduleIndex, 1);
+    delete reminderMeta.deliveredOn[scheduleId];
+    saveReminderSchedules();
+    saveReminderMeta();
+    renderReminderSchedules();
+    syncReminderEngine().catch(error => console.error('Reminder sync failed:', error));
+
+    if (reminderEditId === scheduleId) {
+      resetReminderForm();
     }
   }
 }
 
-// Initialize notification system
-requestNotificationPermission();
+async function testNotification() {
+  if (hasNativeLocalNotifications()) {
+    const permissionStatus = await requestNotificationPermission();
+    if (permissionStatus !== 'granted') {
+      alert('Allow notifications first so the app can send reminders.');
+      return;
+    }
+  } else {
+    if (Notification.permission === 'default') {
+      await requestNotificationPermission();
+    }
 
-// Check reminders every minute
-setInterval(checkAndSendReminders, 60000);
+    if (Notification.permission !== 'granted') {
+      alert('Allow notifications first so the app can send reminders.');
+      return;
+    }
+  }
 
-// Check immediately on page load
-checkAndSendReminders();
+  await sendNotification('Test notification', 'Your reminder system is ready.', 'test-notification');
+}
+
+const notificationPermissionStatus = document.getElementById('notificationPermissionStatus');
+const appInstallStatus = document.getElementById('appInstallStatus');
+const notificationCapabilityNote = document.getElementById('notificationCapabilityNote');
+const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
+const testNotificationBtn = document.getElementById('testNotificationBtn');
+const reminderNameInput = document.getElementById('reminderName');
+const reminderTimeInput = document.getElementById('reminderTime');
+const reminderTitleInput = document.getElementById('reminderTitle');
+const reminderMessageInput = document.getElementById('reminderMessage');
+const reminderDayInputs = Array.from(document.querySelectorAll('#reminderDays input'));
+const saveReminderBtn = document.getElementById('saveReminderBtn');
+const resetReminderFormBtn = document.getElementById('resetReminderFormBtn');
+const remindersListEl = document.getElementById('remindersList');
+
+let reminderSchedules = loadReminderSchedules();
+let reminderMeta = loadReminderMeta();
+let nativeReminderIds = loadNativeReminderIds();
+
+saveReminderSchedules();
+renderReminderSchedules();
+resetReminderForm();
+updateNotificationStatus();
+syncReminderEngine().catch(error => console.error('Reminder sync failed:', error));
+
+enableNotificationsBtn.addEventListener('click', () => {
+  requestNotificationPermission().catch(error => console.error('Permission request failed:', error));
+});
+testNotificationBtn.addEventListener('click', () => {
+  testNotification().catch(error => console.error('Test notification failed:', error));
+});
+saveReminderBtn.addEventListener('click', saveReminderFromForm);
+resetReminderFormBtn.addEventListener('click', resetReminderForm);
+remindersListEl.addEventListener('click', handleReminderListClick);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    updateNotificationStatus();
+    syncReminderEngine().catch(error => console.error('Reminder sync failed:', error));
+  }
+});
+window.addEventListener('focus', () => {
+  updateNotificationStatus();
+  syncReminderEngine().catch(error => console.error('Reminder sync failed:', error));
+});
+if (!hasNativeLocalNotifications()) {
+  setInterval(() => {
+    checkReminderSchedules().catch(error => console.error('Reminder check failed:', error));
+  }, 60000);
+}
 
 // ==========================================
 // SUPABASE SETUP & INITIALIZATION
@@ -281,8 +923,64 @@ function handleError(error, context = "") {
   }
 }
 
-// Initialize Supabase data on page load
-(async () => {
+// ==========================================
+// AUTHENTICATION
+// ==========================================
+
+let currentUser = null;
+
+function showApp() {
+  const overlay = document.getElementById('auth-overlay');
+  const logoutBtn = document.getElementById('logout-btn');
+  if (overlay) overlay.style.display = 'none';
+  if (logoutBtn) logoutBtn.style.display = '';
+}
+
+function showAuthScreen() {
+  const overlay = document.getElementById('auth-overlay');
+  const logoutBtn = document.getElementById('logout-btn');
+  if (overlay) overlay.style.display = 'flex';
+  if (logoutBtn) logoutBtn.style.display = 'none';
+}
+
+function resetAppState() {
+  todos = {};
+  budgetData = {};
+  habits = {};
+  diaryEntries = [];
+  calendarEvents = {};
+  renderTodos();
+  renderBudget();
+  renderHabits();
+  renderCalendar();
+  renderDiary([]);
+}
+
+async function initAuth() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    showApp();
+    await loadAllData();
+  } else {
+    showAuthScreen();
+  }
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      currentUser = session.user;
+      showApp();
+      await loadAllData();
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      resetAppState();
+      showAuthScreen();
+    }
+  });
+}
+
+// Load all Supabase data for the current user
+async function loadAllData() {
+  if (!currentUser) return;
   console.log("Loading data from Supabase...");
   
   // Load todos
@@ -387,7 +1085,7 @@ function handleError(error, context = "") {
   renderBudget();
   renderHabits();
   renderCalendar();
-})();
+}
 
 
 // Section navigation
@@ -506,6 +1204,7 @@ async function saveTodos() {
           const { data, error } = await supabaseClient
             .from("todos")
             .insert([{
+              user_id: currentUser.id,
               week_key: weekKey,
               day_index: dayIndex,
               text: todo.text,
@@ -534,6 +1233,7 @@ document.getElementById("addTodo").onclick = async () => {
   const { data, error } = await supabaseClient
     .from("todos")
     .insert([{
+      user_id: currentUser.id,
       week_key: weekKey,
       day_index: day,
       text: text,
@@ -656,6 +1356,7 @@ function saveBudget() {
     supabaseClient
       .from("budget")
       .insert([{
+        user_id: currentUser.id,
         month_key: currentMonth,
         income: monthData.income,
         expenses: monthData.expenses,
@@ -962,6 +1663,7 @@ function saveHabits() {
       supabaseClient
         .from("habits")
         .insert([{
+          user_id: currentUser.id,
           week_key: weekKey,
           name: habit.name,
           days: habit.days
@@ -986,6 +1688,7 @@ document.getElementById("addHabit").onclick = async () => {
   const { data, error } = await supabaseClient
     .from("habits")
     .insert([{
+      user_id: currentUser.id,
       week_key: weekKey,
       name: name,
       days: Array(7).fill(false)
@@ -1071,16 +1774,14 @@ document.getElementById("copyHabitsFromPrevWeek").onclick = async () => {
       habits[currentWeekKey].push(newHabit);
       
       // Save to Supabase
-      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-        await supabaseClient
-          .from("habits")
-          .insert({
-            week_key: currentWeekKey,
-            habit_name: newHabit.name,
-            day_index: dayIndex,
-            completed: false
-          });
-      }
+      await supabaseClient
+        .from("habits")
+        .insert({
+          user_id: currentUser.id,
+          week_key: currentWeekKey,
+          name: newHabit.name,
+          days: Array(7).fill(false)
+        });
     }
   }
   
@@ -1138,7 +1839,7 @@ function saveDiary() {
   // Save to Supabase
   supabaseClient
     .from('diary_entries')
-    .insert([newEntry])
+    .insert([{ user_id: currentUser.id, ...newEntry }])
     .then(({ data, error }) => {
       if (error) {
         console.error("❌ Failed to save diary:", error);
@@ -1303,6 +2004,7 @@ document.getElementById('addEvent').addEventListener('click', () => {
   supabaseClient
     .from('calendar_events')
     .insert([{
+      user_id: currentUser.id,
       event_date: date,
       title: title,
       note: note
@@ -1363,3 +2065,77 @@ document.getElementById('nextMonth').onclick = () => {
 renderCalendar();
 
 console.log("JS is running");
+
+// ==========================================
+// AUTH UI EVENTS
+// ==========================================
+
+function showAuthMessage(el, msg, isSuccess) {
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.padding = '8px 12px';
+  el.style.borderRadius = '6px';
+  el.style.fontSize = '0.875rem';
+  el.style.background = isSuccess ? '#f0fdf4' : '#fef2f2';
+  el.style.color = isSuccess ? '#16a34a' : '#dc2626';
+  el.style.border = isSuccess ? '1px solid #86efac' : '1px solid #fca5a5';
+}
+
+document.getElementById('auth-login-btn').addEventListener('click', async () => {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.style.display = 'none';
+
+  if (!email || !password) {
+    showAuthMessage(errEl, 'Please enter your email and password.', false);
+    return;
+  }
+
+  const loginBtn = document.getElementById('auth-login-btn');
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Logging in\u2026';
+
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+  loginBtn.disabled = false;
+  loginBtn.textContent = 'Log in';
+  if (error) showAuthMessage(errEl, error.message, false);
+});
+
+document.getElementById('auth-signup-btn').addEventListener('click', async () => {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.style.display = 'none';
+
+  if (!email || !password) {
+    showAuthMessage(errEl, 'Please enter your email and password.', false);
+    return;
+  }
+  if (password.length < 6) {
+    showAuthMessage(errEl, 'Password must be at least 6 characters.', false);
+    return;
+  }
+
+  const signupBtn = document.getElementById('auth-signup-btn');
+  signupBtn.disabled = true;
+  signupBtn.textContent = 'Creating account\u2026';
+
+  const { error } = await supabaseClient.auth.signUp({ email, password });
+
+  signupBtn.disabled = false;
+  signupBtn.textContent = 'Create account';
+
+  if (error) {
+    showAuthMessage(errEl, error.message, false);
+  } else {
+    showAuthMessage(errEl, 'Account created! Check your email to confirm, then log in.', true);
+  }
+});
+
+document.getElementById('logout-btn').addEventListener('click', async () => {
+  await supabaseClient.auth.signOut();
+});
+
+initAuth();
