@@ -774,11 +774,11 @@ nav button:hover {
 
 .todo-input-container {
   display: grid;
-  grid-template-columns: 1fr 1fr auto auto;
+  grid-template-columns: 1fr 1fr 1fr auto;
   gap: 6px;
   margin-bottom: 16px;
   max-width: 100%;
-  align-items: center;
+  align-items: stretch;
 }
 
 .todo-input-container select,
@@ -794,7 +794,7 @@ nav button:hover {
 }
 
 .todo-input-container select {
-  grid-column: 1 / 3;
+  width: 100%;
 }
 
 .todo-input-container button {
