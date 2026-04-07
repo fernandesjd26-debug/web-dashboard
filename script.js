@@ -986,15 +986,22 @@ async function loadAllData() {
   // Load todos
   const { data: todosData, error: todosError } = await supabaseClient
     .from("todos")
-    .select("*");
+    .select("*")
+    .order("created_at", { ascending: true });
   if (!todosError && todosData) {
     todos = {};
     todosData.forEach(item => {
       if (!todos[item.week_key]) {
-        todos[item.week_key] = Array(7).fill().map(() => []);
+        const weekTodos = Array(7).fill().map(() => []);
+        weekTodos.general = [];
+        todos[item.week_key] = weekTodos;
       }
-      todos[item.week_key][item.day_index] = todos[item.week_key][item.day_index] || [];
-      todos[item.week_key][item.day_index].push({
+
+      const targetBucket = item.day_index === -1
+        ? todos[item.week_key].general
+        : (todos[item.week_key][item.day_index] = todos[item.week_key][item.day_index] || []);
+
+      targetBucket.push({
         id: item.id,
         text: item.text,
         note: item.note,
@@ -1102,9 +1109,12 @@ showSection("motivation-section");
 
 const todoDaysEl = document.getElementById("todoDays");
 const weekLabel = document.getElementById("weekLabel");
+const weekRangeLabel = document.getElementById("weekRangeLabel");
 
 let todos = {};
 let currentWeekOffset = 0;
+const GENERAL_DAY_INDEX = -1;
+const GENERAL_DAY_TITLE = "General (This Week)";
 
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -1119,49 +1129,206 @@ function getWeekKey(offset = 0) {
   return `${year}-W${week}`;
 }
 
+function createWeekTodos() {
+  const weekTodos = Array(7).fill().map(() => []);
+  weekTodos.general = [];
+  return weekTodos;
+}
+
+function ensureWeekTodos(weekKey) {
+  if (!todos[weekKey]) {
+    todos[weekKey] = createWeekTodos();
+  }
+
+  if (!Array.isArray(todos[weekKey].general)) {
+    todos[weekKey].general = [];
+  }
+
+  return todos[weekKey];
+}
+
+function getDayTodos(weekKey, dayIndex) {
+  const weekTodos = ensureWeekTodos(weekKey);
+  return dayIndex === GENERAL_DAY_INDEX ? weekTodos.general : weekTodos[dayIndex];
+}
+
+function setDayTodos(weekKey, dayIndex, updatedTodos) {
+  const weekTodos = ensureWeekTodos(weekKey);
+  if (dayIndex === GENERAL_DAY_INDEX) {
+    weekTodos.general = updatedTodos;
+    return;
+  }
+  weekTodos[dayIndex] = updatedTodos;
+}
+
+function getWeekDateRange(offset = 0) {
+  const now = new Date();
+  const todayIndex = (now.getDay() + 6) % 7;
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(now.getDate() - todayIndex + (offset * 7));
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  return { start, end };
+}
+
+function formatShortDate(date) {
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function updateWeekHeader(weekKey) {
+  weekLabel.textContent = weekKey;
+  const { start, end } = getWeekDateRange(currentWeekOffset);
+  if (weekRangeLabel) {
+    weekRangeLabel.textContent = `${formatShortDate(start)} - ${formatShortDate(end)}`;
+  }
+}
+
+async function persistTodoDayOrder(weekKey, dayIndex) {
+  const dayTodos = getDayTodos(weekKey, dayIndex);
+
+  const { error: deleteError } = await supabaseClient
+    .from("todos")
+    .delete()
+    .eq("week_key", weekKey)
+    .eq("day_index", dayIndex);
+  if (deleteError) {
+    handleError(deleteError, "resetting todo day order");
+    return false;
+  }
+
+  if (dayTodos.length === 0) {
+    return true;
+  }
+
+  const payload = dayTodos.map(todo => ({
+    user_id: currentUser.id,
+    week_key: weekKey,
+    day_index: dayIndex,
+    text: todo.text,
+    note: todo.note,
+    done: todo.done
+  }));
+
+  const { data, error } = await supabaseClient
+    .from("todos")
+    .insert(payload)
+    .select("id, text, note, done");
+
+  if (error) {
+    handleError(error, "saving reordered todos");
+    return false;
+  }
+
+  if (Array.isArray(data)) {
+    setDayTodos(weekKey, dayIndex, data.map(item => ({
+      id: item.id,
+      text: item.text,
+      note: item.note,
+      done: item.done
+    })));
+  }
+
+  return true;
+}
+
+async function toggleTodoDone(todo) {
+  todo.done = !todo.done;
+
+  if (todo.id) {
+    const { error } = await supabaseClient
+      .from("todos")
+      .update({ done: todo.done })
+      .eq("id", todo.id);
+    handleError(error, "updating todo status");
+  }
+}
+
+async function moveTodo(weekKey, dayIndex, index, direction) {
+  const dayTodos = getDayTodos(weekKey, dayIndex);
+  const targetIndex = index + direction;
+
+  if (targetIndex < 0 || targetIndex >= dayTodos.length) {
+    return;
+  }
+
+  [dayTodos[index], dayTodos[targetIndex]] = [dayTodos[targetIndex], dayTodos[index]];
+  const success = await persistTodoDayOrder(weekKey, dayIndex);
+  if (!success) {
+    [dayTodos[index], dayTodos[targetIndex]] = [dayTodos[targetIndex], dayTodos[index]];
+  }
+
+  renderTodos();
+}
+
 function renderTodos() {
   const weekKey = getWeekKey(currentWeekOffset);
-  weekLabel.textContent = weekKey;
-
-  if (!todos[weekKey]) {
-    todos[weekKey] = Array(7).fill().map(() => []);
-  }
+  updateWeekHeader(weekKey);
+  const weekTodos = ensureWeekTodos(weekKey);
 
   // CLEAR previous content
   todoDaysEl.innerHTML = "";
 
-  todos[weekKey].forEach((dayTodos, dayIndex) => {
+  const groupedTodos = [{
+    dayTitle: GENERAL_DAY_TITLE,
+    dayIndex: GENERAL_DAY_INDEX,
+    dayTodos: weekTodos.general
+  }].concat(days.map((day, dayIndex) => ({
+    dayTitle: day,
+    dayIndex,
+    dayTodos: weekTodos[dayIndex]
+  })));
+
+  groupedTodos.forEach(({ dayTitle, dayIndex, dayTodos }) => {
     const dayEl = document.createElement("div");
     dayEl.className = "todo-day";
-    dayEl.innerHTML = `<h3 class="todo-day-title">${days[dayIndex]}</h3>`;
+    dayEl.innerHTML = `<h3 class="todo-day-title">${dayTitle}</h3>`;
 
     dayTodos.forEach((todo, index) => {
       const item = document.createElement("div");
       item.className = "todo-item" + (todo.done ? " done" : "");
 
       item.innerHTML = `
-        <input type="checkbox" ${todo.done ? "checked" : ""}>
+        <input class="todo-checkbox" type="checkbox" ${todo.done ? "checked" : ""}>
         <div class="todo-content">
-          <span>${todo.text}</span>
-          ${todo.note ? `<div class="todo-note">${todo.note}</div>` : ""}
+          <span>${escapeHtml(todo.text)}</span>
+          ${todo.note ? `<div class="todo-note">${escapeHtml(todo.note)}</div>` : ""}
         </div>
-        <button>×</button>
+        <div class="todo-actions">
+          <button type="button" class="todo-move" title="Move up" ${index === 0 ? "disabled" : ""}>↑</button>
+          <button type="button" class="todo-move" title="Move down" ${index === dayTodos.length - 1 ? "disabled" : ""}>↓</button>
+          <button type="button" class="todo-delete" title="Delete task">×</button>
+        </div>
       `;
 
-      item.querySelector("input").onchange = async () => {
-        todo.done = !todo.done;
-        // Update in Supabase
-        if (todo.id) {
-          const { error } = await supabaseClient
-            .from("todos")
-            .update({ done: todo.done })
-            .eq("id", todo.id);
-          handleError(error, "updating todo status");
-        }
+      const checkbox = item.querySelector(".todo-checkbox");
+      const moveButtons = item.querySelectorAll(".todo-move");
+      const deleteButton = item.querySelector(".todo-delete");
+
+      checkbox.onchange = async () => {
+        await toggleTodoDone(todo);
         renderTodos();
       };
 
-      item.querySelector("button").onclick = async () => {
+      item.addEventListener("click", async (event) => {
+        if (event.target.closest("button") || event.target.closest("input")) {
+          return;
+        }
+
+        await toggleTodoDone(todo);
+        renderTodos();
+      });
+
+      moveButtons[0].onclick = async () => {
+        await moveTodo(weekKey, dayIndex, index, -1);
+      };
+
+      moveButtons[1].onclick = async () => {
+        await moveTodo(weekKey, dayIndex, index, 1);
+      };
+
+      deleteButton.onclick = async () => {
         // Delete from Supabase
         if (todo.id) {
           const { error } = await supabaseClient
@@ -1171,7 +1338,6 @@ function renderTodos() {
           handleError(error, "deleting todo");
         }
         dayTodos.splice(index, 1);
-        saveTodos();
         renderTodos();
       };
 
@@ -1182,45 +1348,6 @@ function renderTodos() {
   });
 }
 
-async function saveTodos() {
-  // Save to Supabase
-  for (const weekKey in todos) {
-    for (let dayIndex = 0; dayIndex < todos[weekKey].length; dayIndex++) {
-      const dayTodos = todos[weekKey][dayIndex];
-      for (const todo of dayTodos) {
-        if (todo.id) {
-          // Update existing
-          const { error } = await supabaseClient
-            .from("todos")
-            .update({
-              text: todo.text,
-              note: todo.note,
-              done: todo.done
-            })
-            .eq("id", todo.id);
-          handleError(error, "updating todo");
-        } else {
-          // Insert new
-          const { data, error } = await supabaseClient
-            .from("todos")
-            .insert([{
-              user_id: currentUser.id,
-              week_key: weekKey,
-              day_index: dayIndex,
-              text: todo.text,
-              note: todo.note,
-              done: todo.done
-            }]);
-          if (!error && data && data[0]) {
-            todo.id = data[0].id;
-          }
-          handleError(error, "inserting todo");
-        }
-      }
-    }
-  }
-}
-
 document.getElementById("addTodo").onclick = async () => {
   const text = todoText.value.trim();
   if (!text) return;
@@ -1228,6 +1355,8 @@ document.getElementById("addTodo").onclick = async () => {
   const note = todoNote.value.trim();
   const day = Number(todoDay.value);
   const weekKey = getWeekKey(currentWeekOffset);
+
+  ensureWeekTodos(weekKey);
 
   // Insert into Supabase immediately
   const { data, error } = await supabaseClient
@@ -1239,7 +1368,9 @@ document.getElementById("addTodo").onclick = async () => {
       text: text,
       note: note,
       done: false
-    }]);
+    }])
+    .select("id")
+    .single();
 
   if (error) {
     console.error("❌ Failed to save todo:", error);
@@ -1247,7 +1378,8 @@ document.getElementById("addTodo").onclick = async () => {
   } else {
     console.log("✅ Todo saved to Supabase!");
     // Add to local state
-    todos[weekKey][day].push({
+    getDayTodos(weekKey, day).push({
+      id: data?.id,
       text,
       note,
       done: false
@@ -1281,7 +1413,6 @@ document.getElementById("deleteWeek").onclick = async () => {
   handleError(error, "deleting week todos");
   
   delete todos[weekKey];
-  saveTodos();
   renderTodos();
 };
 

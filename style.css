@@ -491,40 +491,32 @@ nav button:hover {
 }
 
 /* ===============================
-   TODO ITEM (3-column layout)
+   TODO ITEM (card layout)
 =============================== */
 
 .todo-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   background: #f3f4f6;
-  padding: 14px;
+  padding: 14px 16px;
   margin-bottom: 10px;
-  border-radius: 8px;
+  border-radius: 12px;
   border-left: 4px solid var(--accent);
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .todo-item:hover {
   background: #e5e7eb;
-  transform: translateX(4px);
+  transform: translateX(4px) scale(1.005);
 }
 
-/* Day label (left column) */
-.todo-day-label {
-  font-size: 0.9rem;
-  color: #666;
-  white-space: nowrap;
-  margin-right: 10px;
-  min-width: 80px;
-}
-
-/* Task text (middle column) */
-.todo-task {
-  flex: 1;
-  min-width: 0;
-  white-space: normal;
+.todo-item.done {
+  background: #e5e7eb;
+  border-left-color: #9ca3af;
+  box-shadow: inset 0 0 0 1px #d1d5db;
 }
 
 /* Task content and optional note */
@@ -532,19 +524,70 @@ nav button:hover {
   display: block;
   font-size: 1rem;
   color: var(--text);
+  text-align: center;
+  font-weight: 600;
 }
+
 .todo-note {
   font-size: 0.85rem;
   color: var(--muted);
   margin-top: 0.25rem;
+  text-align: center;
 }
+
+.todo-item.done .todo-content span,
+.todo-item.done .todo-note {
+  text-decoration: line-through;
+  opacity: 0.65;
+}
+
 /* Checkbox (right column) */
-.todo-item input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+.todo-checkbox {
+  width: 18px;
+  height: 18px;
   margin: 0;
-  margin-left: 10px;
   flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.todo-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.todo-move,
+.todo-delete {
+  border: none;
+  border-radius: 8px;
+  min-width: 30px;
+  height: 30px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.todo-move {
+  background: #d1d5db;
+  color: #111827;
+}
+
+.todo-move:hover:not(:disabled) {
+  background: #9ca3af;
+}
+
+.todo-move:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.todo-delete {
+  background: #ef4444;
+  color: white;
+}
+
+.todo-delete:hover {
+  background: #dc2626;
 }
 
 
@@ -645,6 +688,24 @@ nav button:hover {
   flex-wrap: wrap;
 }
 
+.todo-week-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 190px;
+}
+
+#weekLabel {
+  font-weight: 700;
+  text-align: center;
+}
+
+.todo-week-range {
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
 .todo-input-container {
   display: flex;
   flex-direction: column;
@@ -662,6 +723,7 @@ nav button:hover {
   font-size: 1rem;
   width: 100%;
   height: 45px;
+  text-align: center;
 }
 
 .todo-input-container input {
@@ -672,6 +734,7 @@ nav button:hover {
   width: 100%;
   height: 45px;
   box-sizing: border-box;
+  text-align: center;
 }
 
 .todo-input-container button {
