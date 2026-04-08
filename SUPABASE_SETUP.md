@@ -44,6 +44,18 @@ CREATE TABLE budget (
 );
 ```
 
+Budget item format used by the app:
+
+```json
+{
+  "name": "Rent",
+  "amount": 1200,
+  "paid": false
+}
+```
+
+`expenses` and `extra` should store arrays of objects in this shape.
+
 ### Table 3: habits
 ```sql
 CREATE TABLE habits (

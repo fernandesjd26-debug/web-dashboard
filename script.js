@@ -946,6 +946,8 @@ function showAuthScreen() {
 function resetAppState() {
   todos = {};
   budgetData = {};
+  budgetNotes = [];
+  budgetNotesRowId = null;
   habits = {};
   diaryEntries = [];
   calendarEvents = {};
@@ -1018,7 +1020,17 @@ async function loadAllData() {
     .select("*");
   if (!budgetError && budgetDataList) {
     budgetData = {};
+    budgetNotes = [];
+    budgetNotesRowId = null;
     budgetDataList.forEach(item => {
+      if (item.month_key === BUDGET_NOTES_KEY) {
+        budgetNotesRowId = item.id;
+        budgetNotes = (item.extra || [])
+          .map((note, index) => normalizeBudgetNote(note, `budget-note-${index}`))
+          .filter(note => note.text);
+        return;
+      }
+
       // ensure expenses/extra have a `paid` boolean
       const expenses = (item.expenses || []).map(e => ({ name: e.name, amount: e.amount, paid: e.paid || false }));
       const extra = (item.extra || []).map(e => ({ name: e.name, amount: e.amount, paid: e.paid || false }));
@@ -1442,12 +1454,19 @@ const extraNameInput = document.getElementById("extra-name");
 const extraAmountInput = document.getElementById("extra-amount");
 const addExtraBtn = document.getElementById("add-extra");
 const extraList = document.getElementById("extra-list");
+const budgetNoteTextInput = document.getElementById("budget-note-text");
+const budgetNoteDetailInput = document.getElementById("budget-note-detail");
+const addBudgetNoteBtn = document.getElementById("add-budget-note");
+const budgetNotesList = document.getElementById("budget-notes-list");
 
 const finalLeftSpan = document.getElementById("final-left");
 
 const BUDGET_KEY = "monthly_budget_v1";
+const BUDGET_NOTES_KEY = "budget-notes-global";
 
 let budgetData = {};
+let budgetNotes = [];
+let budgetNotesRowId = null;
 
 function getMonthKey(date = new Date()) {
   return `${date.getFullYear()}-${date.getMonth()+1}`; // YYYY-M
@@ -1465,6 +1484,137 @@ function initCurrentMonth() {
       extra: []
     };
   }
+}
+
+function createBudgetNoteId() {
+  return `budget-note-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+}
+
+function normalizeBudgetNote(note, fallbackId) {
+  if (!note || typeof note !== "object") {
+    return {
+      id: fallbackId || createBudgetNoteId(),
+      text: "",
+      note: "",
+      done: false
+    };
+  }
+
+  const text = typeof note.text === "string"
+    ? note.text.trim()
+    : (typeof note.name === "string" ? note.name.trim() : "");
+  const detail = typeof note.note === "string" ? note.note.trim() : "";
+
+  return {
+    id: note.id || fallbackId || createBudgetNoteId(),
+    text,
+    note: detail,
+    done: note.done === true || note.paid === true
+  };
+}
+
+async function saveBudgetNotes() {
+  if (!currentUser) {
+    return;
+  }
+
+  const notesPayload = budgetNotes.map(note => ({
+    id: note.id,
+    text: note.text,
+    note: note.note,
+    done: note.done
+  }));
+
+  const payload = {
+    user_id: currentUser.id,
+    month_key: BUDGET_NOTES_KEY,
+    income: 0,
+    expenses: [],
+    savings: 0,
+    extra: notesPayload
+  };
+
+  if (budgetNotesRowId) {
+    const { error } = await supabaseClient
+      .from("budget")
+      .update(payload)
+      .eq("id", budgetNotesRowId);
+    handleError(error, "updating budget notes");
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("budget")
+    .insert([payload])
+    .select("id")
+    .single();
+
+  if (!error && data?.id) {
+    budgetNotesRowId = data.id;
+  }
+  handleError(error, "inserting budget notes");
+}
+
+function renderBudgetNotes() {
+  if (!budgetNotesList) {
+    return;
+  }
+
+  budgetNotesList.innerHTML = "";
+
+  const listCard = document.createElement("div");
+  listCard.className = "todo-day budget-notes-day";
+  listCard.innerHTML = '<h3 class="todo-day-title">Open Items</h3>';
+
+  if (budgetNotes.length === 0) {
+    listCard.innerHTML += '<div class="todo-day-empty">No notes yet</div>';
+    budgetNotesList.appendChild(listCard);
+    return;
+  }
+
+  budgetNotes.forEach(note => {
+    const item = document.createElement("div");
+    item.className = "todo-item budget-note-item" + (note.done ? " done" : "");
+    item.innerHTML = `
+      <input class="todo-checkbox" type="checkbox" ${note.done ? "checked" : ""}>
+      <div class="todo-content">
+        <span>${escapeHtml(note.text)}</span>
+        ${note.note ? `<div class="todo-note">${escapeHtml(note.note)}</div>` : ""}
+      </div>
+      <div class="todo-actions">
+        <button type="button" class="todo-delete" title="Delete note">×</button>
+      </div>
+    `;
+
+    const checkbox = item.querySelector(".todo-checkbox");
+    const deleteBtn = item.querySelector(".todo-delete");
+
+    checkbox.onchange = async () => {
+      note.done = checkbox.checked;
+      await saveBudgetNotes();
+      renderBudgetNotes();
+    };
+
+    item.addEventListener("click", async (event) => {
+      if (event.target.closest("button") || event.target.closest("input")) {
+        return;
+      }
+
+      note.done = !note.done;
+      await saveBudgetNotes();
+      renderBudgetNotes();
+    });
+
+    deleteBtn.onclick = async () => {
+      budgetNotes = budgetNotes.filter(current => current.id !== note.id);
+      await saveBudgetNotes();
+      renderBudgetNotes();
+    };
+
+    listCard.appendChild(item);
+  });
+
+  budgetNotesList.appendChild(listCard);
 }
 
 function updateMonthDisplay() {
@@ -1570,6 +1720,39 @@ addExtraBtn.onclick = async () => {
   renderBudget();
 };
 
+addBudgetNoteBtn.onclick = async () => {
+  const text = budgetNoteTextInput.value.trim();
+  const detail = budgetNoteDetailInput.value.trim();
+
+  if (!text) {
+    return;
+  }
+
+  budgetNotes.push({
+    id: createBudgetNoteId(),
+    text,
+    note: detail,
+    done: false
+  });
+
+  budgetNoteTextInput.value = "";
+  budgetNoteDetailInput.value = "";
+  await saveBudgetNotes();
+  renderBudgetNotes();
+};
+
+budgetNoteTextInput.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    addBudgetNoteBtn.click();
+  }
+});
+
+budgetNoteDetailInput.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    addBudgetNoteBtn.click();
+  }
+});
+
 function renderBudget() {
   updateMonthDisplay();
   
@@ -1601,7 +1784,6 @@ function renderBudget() {
 
     const label = document.createElement('span');
     label.textContent = ` ${e.name}: ${e.amount}`;
-    if (e.paid) label.style.textDecoration = 'line-through';
 
     const delBtn = document.createElement('button');
     delBtn.textContent = '×';
@@ -1649,7 +1831,6 @@ function renderBudget() {
 
     const label = document.createElement('span');
     label.textContent = ` ${e.name}: ${e.amount}`;
-    if (e.paid) label.style.textDecoration = 'line-through';
 
     const delBtn = document.createElement('button');
     delBtn.textContent = '×';
@@ -1678,6 +1859,7 @@ function renderBudget() {
 
   // Final left
   finalLeftSpan.textContent = leftAfterSavings - totalExtra;
+  renderBudgetNotes();
 }
 
 renderBudget();

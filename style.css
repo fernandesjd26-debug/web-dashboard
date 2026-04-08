@@ -734,6 +734,42 @@ nav button:hover {
   cursor: pointer;
 }
 
+.budget-notes {
+  margin-bottom: 16px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.budget-notes h3 {
+  margin-bottom: 10px;
+}
+
+.budget-notes-input {
+  grid-template-columns: 1fr 1fr auto;
+  margin-bottom: 10px;
+}
+
+#budget-notes-list {
+  display: block;
+}
+
+.budget-notes-day {
+  margin-bottom: 0;
+}
+
+.budget-note-item.done .todo-content span,
+.budget-note-item.done .todo-note {
+  text-decoration: none;
+  opacity: 1;
+}
+
+@media (max-width: 600px) {
+  .budget-notes-input {
+    grid-template-columns: 1fr;
+  }
+}
+
 .todo-header {
   display: flex;
   justify-content: center;
