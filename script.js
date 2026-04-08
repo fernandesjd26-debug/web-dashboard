@@ -1776,19 +1776,29 @@ function renderBudget() {
   let totalExpenses = 0;
   monthData.expenses.forEach((e, i) => {
     const li = document.createElement("li");
+    li.className = "todo-item budget-entry-item";
 
     const checkbox = document.createElement('input');
+    checkbox.className = 'todo-checkbox';
     checkbox.type = 'checkbox';
     checkbox.checked = !!e.paid;
     checkbox.dataset.index = i;
 
+    const content = document.createElement('div');
+    content.className = 'todo-content';
+
     const label = document.createElement('span');
     label.textContent = ` ${e.name}: ${e.amount}`;
+    content.appendChild(label);
 
     const delBtn = document.createElement('button');
     delBtn.textContent = '×';
     delBtn.dataset.index = i;
-    delBtn.className = 'small-delete';
+    delBtn.className = 'todo-delete';
+
+    const actions = document.createElement('div');
+    actions.className = 'todo-actions';
+    actions.appendChild(delBtn);
 
     checkbox.onchange = async () => {
       e.paid = checkbox.checked;
@@ -1803,8 +1813,8 @@ function renderBudget() {
     };
 
     li.appendChild(checkbox);
-    li.appendChild(label);
-    li.appendChild(delBtn);
+    li.appendChild(content);
+    li.appendChild(actions);
     expenseList.appendChild(li);
 
     if (e.paid) totalExpenses += Number(e.amount) || 0;
@@ -1823,19 +1833,29 @@ function renderBudget() {
   let totalExtra = 0;
   monthData.extra.forEach((e, i) => {
     const li = document.createElement('li');
+    li.className = 'todo-item budget-entry-item';
 
     const checkbox = document.createElement('input');
+    checkbox.className = 'todo-checkbox';
     checkbox.type = 'checkbox';
     checkbox.checked = !!e.paid;
     checkbox.dataset.index = i;
 
+    const content = document.createElement('div');
+    content.className = 'todo-content';
+
     const label = document.createElement('span');
     label.textContent = ` ${e.name}: ${e.amount}`;
+    content.appendChild(label);
 
     const delBtn = document.createElement('button');
     delBtn.textContent = '×';
     delBtn.dataset.index = i;
-    delBtn.className = 'small-delete';
+    delBtn.className = 'todo-delete';
+
+    const actions = document.createElement('div');
+    actions.className = 'todo-actions';
+    actions.appendChild(delBtn);
 
     checkbox.onchange = async () => {
       e.paid = checkbox.checked;
@@ -1850,8 +1870,8 @@ function renderBudget() {
     };
 
     li.appendChild(checkbox);
-    li.appendChild(label);
-    li.appendChild(delBtn);
+    li.appendChild(content);
+    li.appendChild(actions);
     extraList.appendChild(li);
 
     if (e.paid) totalExtra += Number(e.amount) || 0;

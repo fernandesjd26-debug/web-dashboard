@@ -647,6 +647,15 @@ nav button:hover {
 
 
 /* Budget section */
+#budget-section {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+#budget-section h2 {
+  text-align: center;
+}
+
 #month-controls {
   display: flex;
   gap: 10px;
@@ -677,35 +686,49 @@ nav button:hover {
   margin-right: auto;
 }
 
+.budget-card {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.06);
+}
+
+.budget-card .todo-day-title {
+  margin-bottom: 0;
+}
+
+.budget-card p {
+  margin: 10px 12px;
+}
+
 .budget-input {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  padding-bottom: 10px;
 }
 
 .budget-input label {
   font-weight: 600;
 }
 
-.budget-input input {
+.budget-input input,
+.budget-savings input {
   padding: 6px;
   border-radius: 6px;
   border: 1px solid var(--border);
   width: 150px;
 }
 
-.budget-savings {
-  text-align: center;
+.budget-field-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px 0;
 }
 
-.budget-savings input {
-  padding: 6px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  width: 120px;
-  margin-left: 8px;
+.budget-savings {
+  padding-bottom: 10px;
 }
 
 .expense-input, .extra-input {
@@ -739,6 +762,7 @@ nav button:hover {
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
+  padding-bottom: 10px;
 }
 
 .budget-notes h3 {
@@ -752,10 +776,14 @@ nav button:hover {
 
 #budget-notes-list {
   display: block;
+  padding: 0 10px;
 }
 
 .budget-notes-day {
   margin-bottom: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .budget-note-item.done .todo-content span,
@@ -764,9 +792,56 @@ nav button:hover {
   opacity: 1;
 }
 
+#expense-list,
+#extra-list {
+  max-width: none;
+  margin: 0 10px 10px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+#expense-list .budget-entry-item,
+#extra-list .budget-entry-item {
+  list-style: none;
+  margin: 0;
+}
+
+#expense-list .budget-entry-item.done .todo-content span,
+#extra-list .budget-entry-item.done .todo-content span {
+  text-decoration: none;
+  opacity: 1;
+}
+
+#budget-section #month-controls button {
+  background: var(--card-bg, #fff);
+}
+
+#budget-section > p {
+  max-width: 600px;
+  margin: 0 auto;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.06);
+}
+
 @media (max-width: 600px) {
   .budget-notes-input {
     grid-template-columns: 1fr;
+  }
+
+  .budget-field-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .budget-field-row input {
+    width: 100%;
+    box-sizing: border-box;
   }
 }
 
