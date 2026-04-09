@@ -679,6 +679,50 @@ nav button:hover {
   text-align: center;
 }
 
+.budget-hero-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.budget-hero-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.06);
+  padding: 12px;
+}
+
+.budget-hero-label {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.budget-hero-income input {
+  width: min(260px, 100%);
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 1rem;
+}
+
+.budget-hero-total {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.budget-hero-value {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
 .budget-savings, .budget-expenses, .budget-extra {
   margin-bottom: 16px;
   max-width: none;
@@ -691,6 +735,23 @@ nav button:hover {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   align-items: start;
+}
+
+/* Intentional asymmetry */
+#budgetCards .budget-expenses {
+  grid-column: span 2;
+}
+
+#budgetCards .budget-savings {
+  grid-column: span 1;
+}
+
+#budgetCards .budget-extra {
+  grid-column: span 1;
+}
+
+#budgetCards .budget-notes {
+  grid-column: span 3;
 }
 
 .budget-card {
@@ -827,58 +888,30 @@ nav button:hover {
   box-shadow: 0 4px 14px rgba(17, 24, 39, 0.06);
 }
 
-.budget-summary-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.06);
-}
-
-.budget-summary-income {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-}
-
-.budget-summary-income input {
-  padding: 6px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  width: 150px;
-}
-
-.budget-summary-bar p {
-  margin: 0;
-}
-
 @media (max-width: 1200px) {
+  .budget-hero-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
   #budgetCards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #budgetCards .budget-expenses,
+  #budgetCards .budget-savings,
+  #budgetCards .budget-extra,
+  #budgetCards .budget-notes {
+    grid-column: span 1;
   }
 }
 
 @media (max-width: 600px) {
-  #budgetCards {
+  .budget-hero-row {
     grid-template-columns: 1fr;
   }
 
-  .budget-summary-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .budget-summary-income {
-    justify-content: space-between;
-  }
-
-  .budget-summary-income input {
-    width: 140px;
+  #budgetCards {
+    grid-template-columns: 1fr;
   }
 
   .budget-notes-input {
