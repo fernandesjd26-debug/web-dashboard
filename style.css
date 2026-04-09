@@ -648,7 +648,7 @@ nav button:hover {
 
 /* Budget section */
 #budget-section {
-  max-width: 980px;
+  max-width: 1360px;
   margin: 0 auto;
 }
 
@@ -681,9 +681,16 @@ nav button:hover {
 
 .budget-input, .budget-savings, .budget-expenses, .budget-extra {
   margin-bottom: 16px;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+#budgetCards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
 }
 
 .budget-card {
@@ -759,9 +766,9 @@ nav button:hover {
 
 .budget-notes {
   margin-bottom: 16px;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
   padding-bottom: 10px;
 }
 
@@ -820,8 +827,8 @@ nav button:hover {
 }
 
 #budget-section > p {
-  max-width: 600px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   background: white;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -829,7 +836,17 @@ nav button:hover {
   box-shadow: 0 4px 14px rgba(17, 24, 39, 0.06);
 }
 
+@media (max-width: 1200px) {
+  #budgetCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 600px) {
+  #budgetCards {
+    grid-template-columns: 1fr;
+  }
+
   .budget-notes-input {
     grid-template-columns: 1fr;
   }

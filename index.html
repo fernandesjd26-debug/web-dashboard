@@ -112,52 +112,54 @@
     <button id="next-month">&gt;</button>
   </div>
 
-  <div class="budget-input budget-card todo-day">
-    <h3 class="todo-day-title">Income</h3>
-    <div class="budget-field-row">
-      <label>Income: </label>
-      <input type="number" id="income" placeholder="0">
+  <div id="budgetCards">
+    <div class="budget-input budget-card todo-day">
+      <h3 class="todo-day-title">Income</h3>
+      <div class="budget-field-row">
+        <label>Income: </label>
+        <input type="number" id="income" placeholder="0">
+      </div>
     </div>
-  </div>
 
-  <div class="budget-expenses budget-card todo-day">
-    <h3 class="todo-day-title">Expenses</h3>
-    <div class="expense-input">
-      <input type="text" id="expense-name" placeholder="Expense name">
-      <input type="number" id="expense-amount" placeholder="Amount">
-      <button id="add-expense">Add</button>
+    <div class="budget-expenses budget-card todo-day">
+      <h3 class="todo-day-title">Expenses</h3>
+      <div class="expense-input">
+        <input type="text" id="expense-name" placeholder="Expense name">
+        <input type="number" id="expense-amount" placeholder="Amount">
+        <button id="add-expense">Add</button>
+      </div>
+      <ul id="expense-list"></ul>
     </div>
-    <ul id="expense-list"></ul>
-  </div>
 
-  <div class="budget-savings budget-card todo-day">
-    <h3 class="todo-day-title">Savings</h3>
-    <p>Left after expenses: <span id="left-after-expenses">0</span></p>
-    <div class="budget-field-row">
-      <label>Savings:</label>
-      <input type="number" id="savings" placeholder="0">
+    <div class="budget-savings budget-card todo-day">
+      <h3 class="todo-day-title">Savings</h3>
+      <p>Left after expenses: <span id="left-after-expenses">0</span></p>
+      <div class="budget-field-row">
+        <label>Savings:</label>
+        <input type="number" id="savings" placeholder="0">
+      </div>
+      <p>Left after savings: <span id="left-after-savings">0</span></p>
     </div>
-    <p>Left after savings: <span id="left-after-savings">0</span></p>
-  </div>
 
-  <div class="budget-extra budget-card todo-day">
-    <h3 class="todo-day-title">Extra / Irregular Expenses</h3>
-    <div class="extra-input">
-      <input type="text" id="extra-name" placeholder="Extra name">
-      <input type="number" id="extra-amount" placeholder="Amount">
-      <button id="add-extra">Add</button>
+    <div class="budget-extra budget-card todo-day">
+      <h3 class="todo-day-title">Extra / Irregular Expenses</h3>
+      <div class="extra-input">
+        <input type="text" id="extra-name" placeholder="Extra name">
+        <input type="number" id="extra-amount" placeholder="Amount">
+        <button id="add-extra">Add</button>
+      </div>
+      <ul id="extra-list"></ul>
     </div>
-    <ul id="extra-list"></ul>
-  </div>
 
-  <div class="budget-notes budget-card todo-day">
-    <h3 class="todo-day-title">Money Notes (carry over every month)</h3>
-    <div class="todo-input-container budget-notes-input">
-      <input id="budget-note-text" placeholder="Write note... (e.g. Maria owes me for dinner)">
-      <input id="budget-note-detail" placeholder="Optional detail">
-      <button id="add-budget-note" type="button">Add</button>
+    <div class="budget-notes budget-card todo-day">
+      <h3 class="todo-day-title">Money Notes (carry over every month)</h3>
+      <div class="todo-input-container budget-notes-input">
+        <input id="budget-note-text" placeholder="Write note... (e.g. Maria owes me for dinner)">
+        <input id="budget-note-detail" placeholder="Optional detail">
+        <button id="add-budget-note" type="button">Add</button>
+      </div>
+      <div id="budget-notes-list"></div>
     </div>
-    <div id="budget-notes-list"></div>
   </div>
 
   <p>Total left: <span id="final-left">0</span></p>
